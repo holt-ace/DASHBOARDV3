@@ -43,11 +43,28 @@ export class MetricsService {
     async calculateMetrics(pos, options = {}) {
         try {
             const cacheKey = this._generateCacheKey(pos, options);
+            logger.debug("Metrics cache key generated:", { cacheKey });
             const cached = cacheService.get(cacheKey);
-            if (cached) return cached;
+            if (cached) {
+                logger.info("Using cached metrics result");
+                return cached;
+            }
+
+            logger.info("Calculating metrics from scratch:", { 
+                posCount: pos.length,
+                options
+            });
 
             const filteredPOs = this._filterPOsByDate(pos, options);
+            logger.info("Filtered POs by date range:", { 
+                originalCount: pos.length, 
+                filteredCount: filteredPOs.length
+            });
             
+            if (filteredPOs.length === 0) {
+                logger.warn("No POs found in the date range for metrics calculation");
+            }
+
             // Match the documented structure exactly
             const metrics = {
                 calendar: await this.calculateCalendarMetrics(filteredPOs),
@@ -368,14 +385,51 @@ export class MetricsService {
   _filterPOsByDate(pos, { startDate, endDate } = {}) {
     if (!startDate || !endDate) return pos;
 
+    logger.debug("Filtering POs by date range:", { 
+        startDate: startDate instanceof Date ? startDate.toISOString() : startDate,
+        endDate: endDate instanceof Date ? endDate.toISOString() : endDate
+    });
+
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
 
-    return pos.filter(po => {
-      const orderDate = new Date(po.header.orderDate);
-      return (!start || orderDate >= start) && (!end || orderDate <= end);
+    let filtered;
+    try {
+        filtered = pos.filter(po => {
+            if (!po.header || !po.header.orderDate) {
+                logger.warn("PO missing header.orderDate:", { 
+                    poNumber: po.header?.poNumber || 'Unknown' 
+                });
+                return false;
+            }
+            
+            const orderDate = new Date(po.header.orderDate);
+            if (isNaN(orderDate.getTime())) {
+                logger.warn("Invalid orderDate format:", { 
+                    poNumber: po.header.poNumber,
+                    orderDate: po.header.orderDate
+                });
+                return false;
+            }
+            
+            return (!start || orderDate >= start) && (!end || orderDate <= end);
         });
+    } catch (error) {
+        logger.error("Error filtering POs by date:", {
+            error: error.message,
+            stack: error.stack
+        });
+        return [];
     }
+    
+    logger.debug("Date filtering results:", {
+        originalCount: pos.length,
+        filteredCount: filtered.length,
+        excluded: pos.length - filtered.length
+    });
+    
+    return filtered;
+  }
 
     _generateCacheKey(pos, options) {
         const posIds = pos.map(po => po.header.poNumber).sort().join(',');

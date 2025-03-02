@@ -26,6 +26,22 @@ export const searchPOsHandler = async (req, res, next, poService) => {
       offset: parseInt(offset),
     });
 
+    // Sample first few PO documents to inspect date structure
+    if (pos.length > 0) {
+      const sample = pos.slice(0, Math.min(3, pos.length));
+      sample.forEach((po, index) => {
+        logger.info(`Sample PO ${index + 1} data:`, {
+          poNumber: po.header?.poNumber,
+          createdAt: po.createdAt,
+          orderDate: po.header?.orderDate,
+          hasOrderDate: !!po.header?.orderDate,
+          orderDateType: typeof po.header?.orderDate,
+          orderDateObj: po.header?.orderDate ? new Date(po.header.orderDate) : null,
+          orderDateObjISO: po.header?.orderDate ? new Date(po.header.orderDate).toISOString() : null
+        });
+      });
+    }
+
     logger.info("Search completed:", {
       query,
       filters: { 

@@ -19,8 +19,6 @@ import {
     updateSchema
 } from './mongodb.js';
 
-import { createSchemaManager } from './migrations.js';
-
 /**
  * Schema management service
  * Provides unified interface for schema operations
@@ -28,7 +26,6 @@ import { createSchemaManager } from './migrations.js';
 class SchemaService {
     constructor(db) {
         this.db = db;
-        this.schemaManager = createSchemaManager(db);
     }
 
     /**
@@ -36,19 +33,9 @@ class SchemaService {
      */
     async initialize() {
         try {
-            // Initialize schema versioning
-            await this.schemaManager.initialize();
-
-            // Validate current version
-            const isValid = await this.schemaManager.validateVersion();
-            if (!isValid) {
-                console.warn('Schema version mismatch detected');
-                await this.migrate();
-            }
-
             // Ensure collection exists with proper schema
             await this.ensureCollection();
-
+            
             console.log('Schema system initialized successfully');
         } catch (error) {
             console.error('Error initializing schema system:', error);
@@ -76,14 +63,6 @@ class SchemaService {
     }
 
     /**
-     * Migrate schema to target version
-     * @param {string} targetVersion - Target schema version
-     */
-    async migrate(targetVersion = SCHEMA_VERSION) {
-        await this.schemaManager.migrate(targetVersion);
-    }
-
-    /**
      * Get current schema information
      * @returns {Object} Schema information
      */
@@ -95,22 +74,6 @@ class SchemaService {
             fieldFormats: FIELD_FORMATS,
             fieldTypes: FIELD_TYPES
         };
-    }
-
-    /**
-     * Get migration history
-     * @returns {Promise<Array>} Migration history
-     */
-    async getMigrationHistory() {
-        return this.schemaManager.getMigrationHistory();
-    }
-
-    /**
-     * Get available migrations
-     * @returns {Object} Available migrations
-     */
-    getAvailableMigrations() {
-        return this.schemaManager.getAvailableMigrations();
     }
 
     /**

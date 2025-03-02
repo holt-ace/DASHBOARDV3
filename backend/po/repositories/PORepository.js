@@ -33,29 +33,99 @@ export class PORepository {
     startDate,
     endDate,
     filters = {},
-    options = { batchSize: 500 }
+    batchSize = 500
   ) {
-    const dateFilters = {
-      "header.orderDate": {
-        $gte: startDate,
-        $lte: endDate,
-      },
-    };
+    logger.info("PORepository.findByDateRange called with:", { 
+      startDate: startDate instanceof Date ? startDate.toISOString() : startDate,
+      endDate: endDate instanceof Date ? endDate.toISOString() : endDate,
+      filters,
+      batchSize
+    });
+    
+    // Handle string dates in MM/DD/YY format
+    let dateFilters = {};
+    if (startDate || endDate) {
+      logger.info("Creating date filters for both createdAt (Date) and orderDate (string format)");
+
+      // First, we'll filter by createdAt which is a proper Date object
+      dateFilters = {
+        "createdAt": {}
+      };
+
+      if (startDate) {
+        dateFilters.createdAt.$gte = startDate;
+      }
+
+      if (endDate) {
+        dateFilters.createdAt.$lte = endDate;
+      }
+    }
+
     const combinedFilters = { ...dateFilters, ...filters };
+    logger.debug("Combined filters for query:", combinedFilters);
+    
+    const options = { batchSize: typeof batchSize === 'number' ? batchSize : 500 };
+    logger.debug("Using cursor options:", options);
     
     // Use cursor for efficient streaming of large datasets
-    const cursor = this.model
-      .find(combinedFilters)
-      .sort({ "header.orderDate": 1 })
-      .cursor({ batchSize: options.batchSize });
+    let cursor;
+    try {
+      cursor = this.model
+        .find(combinedFilters)
+        .sort({ "header.orderDate": 1 })
+        .cursor({ batchSize: options.batchSize });
+    } catch (error) {
+      logger.error("Error creating MongoDB cursor:", {
+        error: error.message,
+        filters: combinedFilters
+      });
+      throw error;
+    }
     
     const results = [];
     let count = 0;
     
     // Process documents in batches
-    for await (const doc of cursor) {
-      results.push(doc);
-      count++;
+    try {
+      for await (const doc of cursor) {
+        results.push(doc);
+        
+        // Log the first 3 POs to see their date structure
+        if (count < 3) {
+          logger.info(`PO document ${count + 1} details:`, {
+            poNumber: doc.header?.poNumber,
+            createdAt: doc.createdAt,
+            orderDate: doc.header?.orderDate,
+            orderDateType: typeof doc.header?.orderDate,
+            dateObj: doc.header?.orderDate ? new Date(doc.header.orderDate) : null
+          });
+        }
+        
+        count++;
+      }
+      
+      // Sample the date range of returned POs
+      if (count > 0) {
+        const firstPO = results[0];
+        const lastPO = results[count - 1];
+        logger.info(`Returned POs date range:`, {
+          firstPONumber: firstPO.header?.poNumber,
+          firstPOOrderDate: firstPO.header?.orderDate,
+          lastPONumber: lastPO.header?.poNumber,
+          lastPOOrderDate: lastPO.header?.orderDate
+        });
+      }
+      
+      logger.info(`Retrieved ${count} POs from database for date range`, {
+        startDate: startDate ? startDate.toISOString() : null,
+        endDate: endDate ? endDate.toISOString() : null
+      });
+    } catch (error) {
+      logger.error("Error processing MongoDB cursor:", {
+        error: error.message,
+        processedCount: count
+      });
+      throw error;
     }
     
     return {

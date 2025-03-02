@@ -2,6 +2,7 @@ import { config as dotenvConfig } from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import FeatureManager from './features.js';
+import { ServerApiVersion } from 'mongodb';
 
 /* global process */ // Tell ESLint that 'process' is a global object
 
@@ -27,7 +28,14 @@ const config = {
     // Database settings
     database: {
         uri: process.env.MONGODB_URI,
-        options: {}
+        options: {
+            serverApi: {
+                version: ServerApiVersion.v1,
+                strict: true,
+                deprecationErrors: true
+            },
+            retryWrites: true
+        }
     },
 
     // PDF processor settings

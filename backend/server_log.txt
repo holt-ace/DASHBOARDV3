@@ -1,0 +1,121 @@
+
+> dashboard-backend@1.0.0 start
+> node server.js
+
+MongoDB connected to database: { databaseName: 'test', collectionsCount: 1 }
+MongoDB connected successfully and verified with ping {}
+MongoDB connected successfully {}
+PORepository initialized {}
+POService initialized successfully {}
+Server running on port 3000 {}
+Raw time range values: { startDate: '2023-01-01', endDate: '2023-12-31' }
+Parsed date objects: {
+  start: '2023-01-01T00:00:00.000Z',
+  end: '2023-12-31T00:00:00.000Z',
+  startTimestamp: 1672531200000,
+  endTimestamp: 1703980800000
+}
+Final time range values: {
+  startDate: '2023-01-01T00:00:00.000Z',
+  endDate: '2023-12-31T00:00:00.000Z'
+}
+Metrics date range parsed: {
+  rawStartDate: '2023-01-01',
+  rawEndDate: '2023-12-31',
+  parsedStartDate: 2023-01-01T00:00:00.000Z,
+  parsedEndDate: 2023-12-31T00:00:00.000Z
+}
+Fetching POs for metrics with params: {
+  startDate: 2023-01-01T00:00:00.000Z,
+  endDate: 2023-12-31T00:00:00.000Z,
+  batchSize: 500
+}
+PORepository.findByDateRange called with: {
+  startDate: '2023-01-01T00:00:00.000Z',
+  endDate: '2023-12-31T00:00:00.000Z',
+  filters: {},
+  batchSize: 500
+}
+Combined filters for query: {
+  'header.orderDate': {
+    '$gte': 2023-01-01T00:00:00.000Z,
+    '$lte': 2023-12-31T00:00:00.000Z
+  }
+}
+Using cursor options: { batchSize: 500 }
+Retrieved 0 POs from database for date range {
+  startDate: '2023-01-01T00:00:00.000Z',
+  endDate: '2023-12-31T00:00:00.000Z'
+}
+Retrieved POs for metrics: { count: 0, firstPODate: null, lastPODate: null }
+Calculating metrics with POs data structure: { samplePOFields: 'No POs found', headerSample: 'No header' }
+Metrics cache key generated: {
+  cacheKey: 'metrics::{"startDate":"2023-01-01T00:00:00.000Z","endDate":"2023-12-31T00:00:00.000Z"}'
+}
+Calculating metrics from scratch: {
+  posCount: 0,
+  options: {
+    startDate: 2023-01-01T00:00:00.000Z,
+    endDate: 2023-12-31T00:00:00.000Z
+  }
+}
+Filtering POs by date range: {
+  startDate: '2023-01-01T00:00:00.000Z',
+  endDate: '2023-12-31T00:00:00.000Z'
+}
+Date filtering results: { originalCount: 0, filteredCount: 0, excluded: 0 }
+Filtered POs by date range: { originalCount: 0, filteredCount: 0 }
+No POs found in the date range for metrics calculation {}
+Cache set: metrics::{"startDate":"2023-01-01T00:00:00.000Z","endDate":"2023-12-31T00:00:00.000Z"} { ttl: 60000 }
+Successfully fetched metrics {}
+Raw time range values: { startDate: '2023-01-01', endDate: '2023-12-31' }
+Parsed date objects: {
+  start: '2023-01-01T00:00:00.000Z',
+  end: '2023-12-31T00:00:00.000Z',
+  startTimestamp: 1672531200000,
+  endTimestamp: 1703980800000
+}
+Final time range values: {
+  startDate: '2023-01-01T00:00:00.000Z',
+  endDate: '2023-12-31T00:00:00.000Z'
+}
+Metrics date range parsed: {
+  rawStartDate: '2023-01-01',
+  rawEndDate: '2023-12-31',
+  parsedStartDate: 2023-01-01T00:00:00.000Z,
+  parsedEndDate: 2023-12-31T00:00:00.000Z
+}
+Fetching POs for metrics with params: {
+  startDate: 2023-01-01T00:00:00.000Z,
+  endDate: 2023-12-31T00:00:00.000Z,
+  batchSize: 500
+}
+PORepository.findByDateRange called with: {
+  startDate: '2023-01-01T00:00:00.000Z',
+  endDate: '2023-12-31T00:00:00.000Z',
+  filters: {},
+  batchSize: 500
+}
+Combined filters for query: {
+  'header.orderDate': {
+    '$gte': 2023-01-01T00:00:00.000Z,
+    '$lte': 2023-12-31T00:00:00.000Z
+  }
+}
+Using cursor options: { batchSize: 500 }
+Retrieved 0 POs from database for date range {
+  startDate: '2023-01-01T00:00:00.000Z',
+  endDate: '2023-12-31T00:00:00.000Z'
+}
+Retrieved POs for metrics: { count: 0, firstPODate: null, lastPODate: null }
+Calculating metrics with POs data structure: { samplePOFields: 'No POs found', headerSample: 'No header' }
+Metrics cache key generated: {
+  cacheKey: 'metrics::{"startDate":"2023-01-01T00:00:00.000Z","endDate":"2023-12-31T00:00:00.000Z"}'
+}
+Cache hit: metrics::{"startDate":"2023-01-01T00:00:00.000Z","endDate":"2023-12-31T00:00:00.000Z"} {}
+Using cached metrics result {}
+Successfully fetched metrics {}
+PO count retrieved: { count: 29 }
+SIGTERM received, shutting down gracefully... {}
+HTTP server closed {}
+Forcing shutdown after timeout {}
