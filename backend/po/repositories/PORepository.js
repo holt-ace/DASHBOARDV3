@@ -216,11 +216,24 @@ export class PORepository {
 
     const combinedFilters = { ...searchQuery, ...filters };
 
-    return this.model
-      .find(combinedFilters)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .skip(offset);
+    // Get total count for these filters before applying pagination
+    const total = await this.model.countDocuments(combinedFilters);
+    
+    // Get paginated results
+    const results = await this.model
+        .find(combinedFilters)
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(offset);
+        
+    return {
+      data: results,
+      metadata: {
+        total,
+        page: Math.floor(offset / limit) + 1,
+        pages: Math.ceil(total / limit)
+      }
+    };
   }
 
   _escapeRegex(string) {

@@ -1,0 +1,299 @@
+// App-specific styles
+// These styles are specific to the App component and its direct children
+
+// Import variables for access in this file
+@import 'variables';
+
+// Main application container
+.app-container {
+  position: relative;
+  background-color: #f6f8fa;
+}
+
+// Dashboard-specific styles
+.dashboard-welcome {
+  padding: $spacer * 1.5;
+  margin-bottom: $spacer * 2;
+  background-color: white;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow-sm;
+  display: flex;
+  align-items: center;
+  
+  &__content {
+    flex: 1;
+    
+    h1 {
+      font-size: 1.75rem;
+      margin-bottom: $spacer * 0.5;
+    }
+    
+    p {
+      color: $secondary;
+      margin-bottom: 0;
+    }
+  }
+  
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacer * 0.5;
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    
+    &__content {
+      margin-bottom: $spacer;
+      text-align: center;
+    }
+    
+    &__actions {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
+// Quick access section
+.quick-access {
+  margin-bottom: $spacer * 2;
+  
+  &__title {
+    font-size: 1.25rem;
+    margin-bottom: $spacer;
+    color: $dark;
+  }
+  
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: $spacer;
+  }
+  
+  &__item {
+    padding: $spacer;
+    border-radius: $border-radius;
+    background-color: white;
+    box-shadow: $box-shadow-sm;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: $box-shadow;
+    }
+    
+    &__icon {
+      font-size: 2rem;
+      margin-bottom: $spacer * 0.5;
+      color: $primary;
+    }
+    
+    &__label {
+      font-weight: $font-weight-medium;
+      color: $dark;
+    }
+    
+    &__description {
+      font-size: 0.875rem;
+      color: $secondary;
+      margin-top: $spacer * 0.25;
+    }
+  }
+}
+
+// Page transition animations
+.page-transition {
+  &-enter {
+    opacity: 0;
+    transform: translateY(10px);
+    
+    &-active {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 300ms, transform 300ms;
+    }
+  }
+  
+  &-exit {
+    opacity: 1;
+    transform: translateY(0);
+    
+    &-active {
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 300ms, transform 300ms;
+    }
+  }
+}
+
+// Feature highlight (for new features)
+.feature-highlight {
+  position: relative;
+  
+  &::after {
+    content: 'NEW';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background-color: $primary;
+    color: white;
+    font-size: 0.625rem;
+    font-weight: $font-weight-bold;
+    padding: 2px 6px;
+    border-radius: 10px;
+    letter-spacing: 0.5px;
+  }
+}
+
+// Global loading state
+.global-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(to right, $primary, lighten($primary, 20%), $primary);
+  background-size: 200% 100%;
+  animation: loading-gradient 2s infinite;
+  z-index: $zindex-fixed + 10;
+}
+
+@keyframes loading-gradient {
+  0% { background-position: 100% 0%; }
+  100% { background-position: 0% 0%; }
+}
+
+// Notification badge
+.notification-badge {
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    background-color: $danger;
+    border-radius: 50%;
+    border: 2px solid white;
+  }
+  
+  &--count {
+    &::after {
+      content: attr(data-count);
+      width: auto;
+      height: auto;
+      min-width: 18px;
+      min-height: 18px;
+      padding: 0 4px;
+      font-size: 0.75rem;
+      font-weight: $font-weight-bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+}
+
+// Breadcrumb customization
+.app-breadcrumb {
+  margin-bottom: $spacer * 1.5;
+  font-size: 0.875rem;
+  
+  .breadcrumb-item {
+    color: $secondary;
+    
+    a {
+      color: $secondary;
+      text-decoration: none;
+      
+      &:hover {
+        color: $primary;
+        text-decoration: underline;
+      }
+    }
+    
+    &.active {
+      color: $dark;
+      font-weight: $font-weight-medium;
+    }
+  }
+}
+
+// App tour tooltip
+.app-tour-tooltip {
+  background-color: $primary;
+  color: white;
+  padding: $spacer;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow;
+  max-width: 300px;
+  
+  &__title {
+    font-weight: $font-weight-bold;
+    margin-bottom: $spacer * 0.5;
+  }
+  
+  &__content {
+    margin-bottom: $spacer;
+    font-size: 0.875rem;
+  }
+  
+  &__actions {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .btn {
+    border: none;
+    background-color: rgba(white, 0.2);
+    color: white;
+    
+    &:hover {
+      background-color: rgba(white, 0.3);
+    }
+    
+    &--primary {
+      background-color: white;
+      color: $primary;
+      
+      &:hover {
+        background-color: rgba(white, 0.9);
+      }
+    }
+  }
+}
+
+// Scroll to top button
+.scroll-to-top {
+  position: fixed;
+  bottom: $spacer * 2;
+  right: $spacer * 2;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: $primary;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: $box-shadow;
+  transition: transform 0.2s, opacity 0.2s;
+  opacity: 0;
+  pointer-events: none;
+  z-index: $zindex-fixed;
+  
+  &--visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  &:hover {
+    transform: translateY(-3px);
+  }
+}

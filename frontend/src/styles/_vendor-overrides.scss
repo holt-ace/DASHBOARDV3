@@ -1,0 +1,329 @@
+// Vendor overrides
+// These styles customize and extend third-party libraries
+
+// Bootstrap overrides
+.btn {
+  font-weight: $font-weight-medium;
+  letter-spacing: 0.01em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  
+  .btn-icon {
+    margin-right: 0.35em;
+    
+    &:only-child {
+      margin-right: 0;
+    }
+  }
+  
+  &.btn-icon-only {
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    
+    &.btn-sm {
+      width: 2rem;
+      height: 2rem;
+    }
+    
+    &.btn-lg {
+      width: 3rem;
+      height: 3rem;
+    }
+  }
+  
+  // Custom hover effects
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+// Custom subtle button style
+.btn-subtle {
+  background-color: rgba($primary, 0.1);
+  border: none;
+  color: $primary;
+  
+  &:hover, &:focus {
+    background-color: rgba($primary, 0.15);
+    color: darken($primary, 10%);
+  }
+  
+  &:active {
+    background-color: rgba($primary, 0.2);
+  }
+}
+
+// Improve card aesthetics
+.card {
+  border: none;
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  .card-header {
+    padding: $spacer $spacer * 1.25;
+    background-color: transparent;
+    border-bottom: 1px solid rgba($border-color, 0.5);
+    font-weight: $font-weight-medium;
+  }
+  
+  .card-footer {
+    background-color: transparent;
+    border-top: 1px solid rgba($border-color, 0.5);
+  }
+}
+
+// Enhanced form controls
+.form-control, .form-select {
+  &:focus {
+    box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
+  }
+}
+
+.form-control, .form-select, .form-check-input, .btn {
+  &:focus {
+    outline: 0;
+  }
+}
+
+.form-check-input {
+  &:checked {
+    background-color: $primary;
+    border-color: $primary;
+  }
+  
+  &:focus {
+    box-shadow: 0 0 0 0.2rem rgba($primary, 0.25);
+  }
+}
+
+// Enhanced input groups
+.input-group {
+  .input-group-text {
+    background-color: $light;
+  }
+}
+
+// Modal enhancements
+.modal {
+  .modal-header {
+    border-bottom: 1px solid rgba($border-color, 0.5);
+  }
+  
+  .modal-footer {
+    border-top: 1px solid rgba($border-color, 0.5);
+  }
+  
+  .modal-content {
+    border: none;
+    box-shadow: $box-shadow;
+  }
+}
+
+// Alert improvements
+.alert {
+  border: none;
+  border-left: 4px solid;
+  
+  &.alert-primary {
+    border-left-color: $primary;
+    background-color: rgba($primary, 0.1);
+  }
+  
+  &.alert-secondary {
+    border-left-color: $secondary;
+    background-color: rgba($secondary, 0.1);
+  }
+  
+  &.alert-success {
+    border-left-color: $success;
+    background-color: rgba($success, 0.1);
+  }
+  
+  &.alert-info {
+    border-left-color: $info;
+    background-color: rgba($info, 0.1);
+  }
+  
+  &.alert-warning {
+    border-left-color: $warning;
+    background-color: rgba($warning, 0.1);
+  }
+  
+  &.alert-danger {
+    border-left-color: $danger;
+    background-color: rgba($danger, 0.1);
+  }
+}
+
+// Bootstrap Table enhancements
+.table {
+  --bs-table-striped-bg: rgba($light, 0.5);
+  
+  thead {
+    th {
+      font-weight: $font-weight-medium;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+      color: $secondary;
+      border-top: none;
+      vertical-align: middle;
+    }
+  }
+  
+  tbody {
+    tr {
+      transition: background-color 0.15s;
+      
+      td {
+        vertical-align: middle;
+      }
+      
+      &:hover {
+        --bs-table-hover-bg: rgba($primary, 0.05);
+      }
+    }
+  }
+}
+
+// NavTabs enhancements
+.nav-tabs {
+  border-bottom: 1px solid rgba($border-color, 0.5);
+  
+  .nav-link {
+    border: none;
+    color: $secondary;
+    padding: $spacer * 0.75 $spacer * 1.25;
+    font-weight: $font-weight-medium;
+    
+    &:hover, &:focus {
+      color: $primary;
+    }
+    
+    &.active {
+      color: $primary;
+      background: transparent;
+      border-bottom: 2px solid $primary;
+    }
+  }
+}
+
+// Toast enhancements
+.toast {
+  background-color: white;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+  
+  .toast-header {
+    background-color: transparent;
+  }
+}
+
+// Badge enhancements
+.badge {
+  font-weight: $font-weight-medium;
+  padding: 0.35em 0.65em;
+  letter-spacing: 0.01em;
+}
+
+// Spinner enhancements
+.spinner-border, .spinner-grow {
+  vertical-align: -0.125em;
+}
+
+// Dropdown menu enhancements
+.dropdown-menu {
+  border: none;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+  
+  .dropdown-item {
+    padding: 0.5rem 1rem;
+    
+    &:active, &.active {
+      background-color: rgba($primary, 0.1);
+      color: $primary;
+    }
+  }
+  
+  .dropdown-divider {
+    border-top: 1px solid rgba($border-color, 0.5);
+  }
+}
+
+// FullCalendar overrides
+.fc {
+  .fc-button-primary {
+    background-color: $primary;
+    border-color: $primary;
+  }
+  
+  .fc-event {
+    border-radius: $border-radius-sm;
+    border: none;
+    
+    &.status-uploaded { background-color: $status-uploaded; }
+    &.status-confirmed { background-color: $status-confirmed; }
+    &.status-shipped { background-color: $status-shipped; }
+    &.status-invoiced { background-color: $status-invoiced; }
+    &.status-delivered { background-color: $status-delivered; }
+    &.status-cancelled { background-color: $status-cancelled; }
+  }
+  
+  .fc-day-today {
+    background-color: rgba($primary, 0.05) !important;
+  }
+  
+  .fc-col-header-cell {
+    background-color: $light;
+    
+    .fc-col-header-cell-cushion {
+      padding: 8px;
+      color: $dark;
+    }
+  }
+}
+
+// Chart.js overrides
+.chart-container {
+  position: relative;
+  margin: 0 auto;
+  width: 100%;
+}
+
+// React Select overrides
+.react-select {
+  &__control {
+    border: 1px solid $border-color !important;
+    box-shadow: none !important;
+    
+    &:hover {
+      border-color: darken($border-color, 10%) !important;
+    }
+    
+    &--is-focused {
+      border-color: $primary !important;
+      box-shadow: 0 0 0 0.2rem rgba($primary, 0.25) !important;
+    }
+  }
+  
+  &__option {
+    &--is-focused {
+      background-color: rgba($primary, 0.1) !important;
+    }
+    
+    &--is-selected {
+      background-color: $primary !important;
+    }
+  }
+  
+  &__indicator {
+    color: $secondary !important;
+    
+    &:hover {
+      color: darken($secondary, 10%) !important;
+    }
+  }
+}

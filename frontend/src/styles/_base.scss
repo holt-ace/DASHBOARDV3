@@ -1,0 +1,137 @@
+// Base styles for the application
+// These styles set foundational rules that apply globally
+
+html, body {
+  height: 100%;
+  font-size: 16px;
+  font-family: $font-family-sans-serif;
+  scroll-behavior: smooth;
+}
+
+body {
+  color: $dark;
+  background-color: #f6f8fa; // Subtle light gray background
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+// Responsive font sizing
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+// Focus state styling for accessibility
+:focus {
+  outline: 2px solid $primary;
+  outline-offset: 2px;
+}
+
+// Override default link styling
+a {
+  color: $primary;
+  text-decoration: none;
+  transition: color 0.2s ease-in-out;
+  
+  &:hover {
+    color: darken($primary, 15%);
+  }
+}
+
+// Typography refinements
+h1, h2, h3, h4, h5, h6 {
+  font-weight: $headings-font-weight;
+  line-height: 1.2;
+  margin-bottom: $spacer;
+  color: darken($dark, 10%);
+}
+
+h1 { font-size: 2rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.5rem; }
+h4 { font-size: 1.25rem; }
+h5 { font-size: 1.1rem; }
+h6 { font-size: 1rem; }
+
+// Consistent paragraph spacing
+p {
+  margin-bottom: $spacer;
+  line-height: $line-height-base;
+}
+
+// Code and pre styling for code snippets
+code {
+  font-family: $font-family-monospace;
+  font-size: 0.9em;
+  color: #e83e8c;
+  background-color: #f8f9fa;
+  padding: 0.2em 0.4em;
+  border-radius: $border-radius-sm;
+}
+
+pre {
+  font-family: $font-family-monospace;
+  font-size: 0.9em;
+  background-color: #f8f9fa;
+  padding: $spacer;
+  border-radius: $border-radius;
+  overflow-x: auto;
+  
+  code {
+    padding: 0;
+    background-color: transparent;
+  }
+}
+
+// Improve table readability
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: $spacer;
+  
+  th, td {
+    padding: $spacer * 0.5;
+    border-bottom: $border-width solid $border-color;
+  }
+  
+  th {
+    font-weight: $font-weight-bold;
+    text-align: left;
+    background-color: rgba($light, 0.5);
+  }
+  
+  tr:hover {
+    background-color: rgba($light, 0.3);
+  }
+}
+
+// SVG styling for workflow diagram and icons
+svg {
+  overflow: visible;
+  
+  &.workflow-svg {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: $light;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba($secondary, 0.5);
+  border-radius: 4px;
+  
+  &:hover {
+    background: rgba($secondary, 0.7);
+  }
+}

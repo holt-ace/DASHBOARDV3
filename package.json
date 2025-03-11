@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "cd backend && PORT=3000 npm run dev",
-    "start": "cd backend && npm run build && PORT=3000 npm start",
+    "start": "cd backend && PORT=3000 npm start",
     "install:all": "npm i && cd backend && npm i",
     "lint:backend": "cd backend && npm run lint",
     "lint:backend:fix": "cd backend && npm run lint:fix",

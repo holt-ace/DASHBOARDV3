@@ -68,7 +68,7 @@ export class POService {
     async findByPONumber(poNumber) {
         const po = await this.poRepository.findByNumber(poNumber);
         if (!po) {
-            throw new NotFoundError(`PO not found: ${poNumber}`);
+            throw NotFoundError(`PO not found: ${poNumber}`);
         }
         return po;
     }
@@ -94,11 +94,11 @@ export class POService {
             const existingPO = await this.findByPONumber(poNumber);
 
             if (!updateData.header?.buyerInfo?.name) {
-                throw new ValidationError('Buyer name is required');
+                throw ValidationError('Buyer name is required');
             }
 
             if (!updateData.header?.syscoLocation?.name) {
-                throw new ValidationError('Sysco location is required');
+                throw ValidationError('Sysco location is required');
             }
 
             const updatedPO = await this.poRepository.update(poNumber, updateData);
@@ -148,6 +148,31 @@ export class POService {
             throw error;
         }
     }
+    
+    async deletePO(poNumber) {
+        try {
+            const po = await this.findByPONumber(poNumber);
+            if (!po) {
+                throw NotFoundError(`PO not found: ${poNumber}`);
+            }
+            
+            await this.poRepository.delete(poNumber);
+            
+            logger.info("PO deleted successfully:", {
+                poNumber,
+                buyerInfo: po.header.buyerInfo,
+                syscoLocation: po.header.syscoLocation,
+            });
+            
+            return { success: true, message: `PO ${poNumber} deleted successfully` };
+        } catch (error) {
+            logger.error("Error deleting PO:", {
+                poNumber,
+                error: error.message
+            });
+            throw error;
+        }
+    }
 
     async getBuyers() {
         return await this.poRepository.getDistinctBuyers();
@@ -167,7 +192,15 @@ export class POService {
             } = params;
 
             const queryFilters = this.buildQueryFilters(filters);
-            return await this.poRepository.searchPOs(query, queryFilters, limit, offset);
+            const result = await this.poRepository.searchPOs(query, queryFilters, limit, offset);
+            
+            logger.info("Search completed:", {
+                query,
+                filters: queryFilters,
+                resultCount: result.data.length,
+                totalCount: result.metadata.total
+            });
+            return result;
         } catch (error) {
             logger.error("Error searching POs:", error);
             throw error;

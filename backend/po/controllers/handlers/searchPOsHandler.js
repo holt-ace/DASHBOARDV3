@@ -13,7 +13,7 @@ export const searchPOsHandler = async (req, res, next, poService) => {
       offset,
     } = req.query;
 
-    const pos = await poService.searchPOs({
+    const result = await poService.searchPOs({
       query,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
@@ -26,6 +26,8 @@ export const searchPOsHandler = async (req, res, next, poService) => {
       offset: parseInt(offset),
     });
 
+    const pos = result.data;
+    
     // Sample first few PO documents to inspect date structure
     if (pos.length > 0) {
       const sample = pos.slice(0, Math.min(3, pos.length));
@@ -37,7 +39,7 @@ export const searchPOsHandler = async (req, res, next, poService) => {
           hasOrderDate: !!po.header?.orderDate,
           orderDateType: typeof po.header?.orderDate,
           orderDateObj: po.header?.orderDate ? new Date(po.header.orderDate) : null,
-          orderDateObjISO: po.header?.orderDate ? new Date(po.header.orderDate).toISOString() : null
+          orderDateObjISO: po.header?.orderDate ? new Date(po.header.orderDate).toISOString() : null,
         });
       });
     }
@@ -50,9 +52,10 @@ export const searchPOsHandler = async (req, res, next, poService) => {
         syscoLocation: syscoLocation ? { name: syscoLocation } : undefined
       },
       resultCount: pos.length,
+      totalCount: result.metadata.total,
     });
 
-    res.json(pos);
+    res.json(result);
   } catch (error) {
     next(error);
   }

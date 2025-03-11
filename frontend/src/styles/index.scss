@@ -1,0 +1,19 @@
+// Global style entry point
+
+// Import variables first
+@import 'variables';
+
+// Import base styles
+@import 'base';
+
+// Import component styles
+@import 'components';
+
+// Import layout styles
+@import 'layout';
+
+// Import utility styles
+@import 'utilities';
+
+// Import vendor overrides
+@import 'vendor-overrides';

@@ -1,0 +1,197 @@
+// Utility classes
+// These classes provide single-purpose styling options for quick adjustments
+
+// Cursor utilities
+.cursor-pointer { cursor: pointer; }
+.cursor-default { cursor: default; }
+.cursor-not-allowed { cursor: not-allowed; }
+
+// Display utilities beyond Bootstrap
+.display-contents { display: contents; }
+.display-grid { display: grid; }
+
+// Flex utilities
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-column-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+// Grid utilities
+.grid-cols-auto-fill-sm { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.grid-cols-auto-fill-md { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.grid-cols-auto-fill-lg { grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); }
+
+// Text truncation
+.text-truncate-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1; /* Standard property for future compatibility */
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+.text-truncate-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; /* Standard property for future compatibility */
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+.text-truncate-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3; /* Standard property for future compatibility */
+  -webkit-box-orient: vertical;  
+  overflow: hidden;
+}
+
+// Status text colors
+.text-status-uploaded { color: $status-uploaded; }
+.text-status-confirmed { color: $status-confirmed; }
+.text-status-shipped { color: $status-shipped; }
+.text-status-invoiced { color: $status-invoiced; }
+.text-status-delivered { color: $status-delivered; }
+.text-status-cancelled { color: $status-cancelled; }
+
+// Status background colors
+.bg-status-uploaded { background-color: $status-uploaded; }
+.bg-status-confirmed { background-color: $status-confirmed; }
+.bg-status-shipped { background-color: $status-shipped; }
+.bg-status-invoiced { background-color: $status-invoiced; }
+.bg-status-delivered { background-color: $status-delivered; }
+.bg-status-cancelled { background-color: $status-cancelled; }
+
+// Status background colors (light variants)
+.bg-status-uploaded-light { background-color: rgba($status-uploaded, 0.1); }
+.bg-status-confirmed-light { background-color: rgba($status-confirmed, 0.1); }
+.bg-status-shipped-light { background-color: rgba($status-shipped, 0.1); }
+.bg-status-invoiced-light { background-color: rgba($status-invoiced, 0.1); }
+.bg-status-delivered-light { background-color: rgba($status-delivered, 0.1); }
+.bg-status-cancelled-light { background-color: rgba($status-cancelled, 0.1); }
+
+// Border utilities
+.border-dashed { border-style: dashed !important; }
+.border-status-uploaded { border-color: $status-uploaded !important; }
+.border-status-confirmed { border-color: $status-confirmed !important; }
+.border-status-shipped { border-color: $status-shipped !important; }
+.border-status-invoiced { border-color: $status-invoiced !important; }
+.border-status-delivered { border-color: $status-delivered !important; }
+.border-status-cancelled { border-color: $status-cancelled !important; }
+
+// Animation utilities
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}
+
+.transition-transform {
+  transition: transform 0.2s ease-in-out;
+}
+
+.hover-lift {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+  }
+}
+
+.hover-scale {
+  transition: transform 0.2s ease-in-out;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+// Position utilities
+.position-absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.position-absolute-center-x {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.position-absolute-center-y {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+// Miscellaneous utilities
+.clickable-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.overflow-visible { overflow: visible !important; }
+
+.max-h-100 { max-height: 100%; }
+.max-w-100 { max-width: 100%; }
+
+// Spacing utilities beyond Bootstrap
+@each $size, $value in $spacers {
+  .gap-#{$size} { gap: $value; }
+  .column-gap-#{$size} { column-gap: $value; }
+  .row-gap-#{$size} { row-gap: $value; }
+}
+
+// Scale elements
+.scale-75 { transform: scale(0.75); }
+.scale-90 { transform: scale(0.90); }
+.scale-110 { transform: scale(1.1); }
+.scale-125 { transform: scale(1.25); }
+
+// Typography utilities
+.font-weight-medium { font-weight: $font-weight-medium; }
+.line-height-1 { line-height: 1; }
+.line-height-sm { line-height: 1.25; }
+.line-height-lg { line-height: 1.75; }
+
+// Z-index utilities
+.z-0 { z-index: 0; }
+.z-1 { z-index: 1; }
+.z-10 { z-index: 10; }
+.z-100 { z-index: 100; }
+.z-1000 { z-index: 1000; }
+
+// Width and height utilities beyond Bootstrap
+.mw-25 { max-width: 25% !important; }
+.mw-50 { max-width: 50% !important; }
+.mw-75 { max-width: 75% !important; }
+.mw-100 { max-width: 100% !important; }
+
+.mh-25 { max-height: 25% !important; }
+.mh-50 { max-height: 50% !important; }
+.mh-75 { max-height: 75% !important; }
+.mh-100 { max-height: 100% !important; }
+
+.w-auto { width: auto !important; }
+.w-fit-content { width: fit-content !important; }
+.h-fit-content { height: fit-content !important; }

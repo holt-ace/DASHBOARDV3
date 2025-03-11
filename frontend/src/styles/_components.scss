@@ -1,0 +1,342 @@
+// Component-specific styles
+// These styles apply to reusable components across the application
+
+// Status Badge - Used for displaying PO status
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: $font-weight-medium;
+  line-height: 1.5;
+  white-space: nowrap;
+  
+  &__icon {
+    margin-right: 0.35rem;
+    font-size: 0.8rem;
+  }
+  
+  // Status-specific styling
+  &--uploaded {
+    background-color: rgba($status-uploaded, 0.15);
+    color: darken($status-uploaded, 15%);
+  }
+  
+  &--confirmed {
+    background-color: rgba($status-confirmed, 0.15);
+    color: darken($status-confirmed, 15%);
+  }
+  
+  &--shipped {
+    background-color: rgba($status-shipped, 0.15);
+    color: darken($status-shipped, 15%);
+  }
+  
+  &--invoiced {
+    background-color: rgba($status-invoiced, 0.15);
+    color: darken($status-invoiced, 15%);
+  }
+  
+  &--delivered {
+    background-color: rgba($status-delivered, 0.15);
+    color: darken($status-delivered, 15%);
+  }
+  
+  &--cancelled {
+    background-color: rgba($status-cancelled, 0.15);
+    color: darken($status-cancelled, 15%);
+  }
+}
+
+// Card styling enhancements
+.card {
+  border: $card-border-width solid $card-border-color;
+  border-radius: $card-border-radius;
+  box-shadow: $card-box-shadow;
+  transition: transform 0.2s, box-shadow 0.2s;
+  
+  &--interactive {
+    cursor: pointer;
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.12);
+    }
+  }
+  
+  &--status {
+    border-top: 3px solid; // Color set with status-specific classes
+    
+    &.card--uploaded { border-top-color: $status-uploaded; }
+    &.card--confirmed { border-top-color: $status-confirmed; }
+    &.card--shipped { border-top-color: $status-shipped; }
+    &.card--invoiced { border-top-color: $status-invoiced; }
+    &.card--delivered { border-top-color: $status-delivered; }
+    &.card--cancelled { border-top-color: $status-cancelled; }
+  }
+}
+
+// Workflow Visualizer
+.workflow-visualizer {
+  margin-bottom: $spacer * 1.5;
+  border-radius: $border-radius;
+  padding: $spacer;
+  background-color: white;
+  box-shadow: $box-shadow-sm;
+  
+  &__container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+  
+  &__legend {
+    display: flex;
+    gap: $spacer;
+    margin-top: $spacer * 0.5;
+    font-size: 0.875rem;
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      
+      &::before {
+        content: '';
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: 0.3rem;
+        border-radius: 50%;
+      }
+      
+      &.current::before {
+        background-color: $primary;
+      }
+      
+      &.available::before {
+        background-color: $success;
+      }
+      
+      &.unavailable::before {
+        background-color: $secondary;
+      }
+    }
+  }
+  
+  svg {
+    .node {
+      cursor: pointer;
+      transition: opacity 0.2s;
+      
+      &:not(.current):not(.available) {
+        opacity: 0.6;
+      }
+      
+      &.available:hover {
+        opacity: 0.9;
+      }
+    }
+    
+    .link {
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+  }
+}
+
+// Status Action Panel
+.status-action-panel {
+  background-color: white;
+  border-radius: $border-radius;
+  box-shadow: $box-shadow-sm;
+  overflow: hidden;
+  
+  &__header {
+    padding: $spacer;
+    color: white;
+    font-weight: $font-weight-medium;
+    
+    &.bg-uploaded { background-color: $status-uploaded; }
+    &.bg-confirmed { background-color: $status-confirmed; }
+    &.bg-shipped { background-color: $status-shipped; }
+    &.bg-invoiced { background-color: $status-invoiced; }
+    &.bg-delivered { background-color: $status-delivered; }
+    &.bg-cancelled { background-color: $status-cancelled; }
+  }
+  
+  &__body {
+    padding: $spacer;
+  }
+  
+  &__footer {
+    padding: $spacer;
+    border-top: $border-width solid $border-color;
+    display: flex;
+    justify-content: flex-end;
+    gap: $spacer * 0.5;
+  }
+}
+
+// Requirements Checklist
+.requirements-checklist {
+  margin: $spacer 0;
+  
+  .progress {
+    height: 0.5rem;
+    border-radius: 1rem;
+    background-color: rgba($secondary, 0.1);
+    
+    .progress-bar {
+      background-color: $primary;
+      border-radius: 1rem;
+      transition: width 0.3s ease;
+    }
+  }
+  
+  .list-group-item {
+    padding: $spacer * 0.5;
+    font-size: 0.875rem;
+    border-left: 3px solid;
+    
+    &-danger {
+      border-left-color: $danger;
+      background-color: rgba($danger, 0.05);
+    }
+    
+    &-warning {
+      border-left-color: $warning;
+      background-color: rgba($warning, 0.05);
+    }
+    
+    &-info {
+      border-left-color: $info;
+      background-color: rgba($info, 0.05);
+    }
+  }
+}
+
+// KPI Cards
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: $spacer;
+  border-radius: $border-radius;
+  background-color: white;
+  box-shadow: $box-shadow-sm;
+  
+  &__title {
+    font-size: 0.875rem;
+    color: $secondary;
+    margin-bottom: $spacer * 0.5;
+  }
+  
+  &__value {
+    font-size: 2rem;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+    margin-bottom: $spacer * 0.25;
+  }
+  
+  &__trend {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    margin-top: auto;
+    
+    &--positive {
+      color: $success;
+    }
+    
+    &--negative {
+      color: $danger;
+    }
+    
+    .icon {
+      margin-right: $spacer * 0.25;
+    }
+  }
+}
+
+// Form Components
+.form-label {
+  font-weight: $font-weight-medium;
+  margin-bottom: $spacer * 0.25;
+}
+
+.form-text {
+  font-size: 0.75rem;
+  color: $secondary;
+  margin-top: $spacer * 0.25;
+}
+
+// Date Picker customizations
+.date-picker {
+  position: relative;
+  
+  .calendar-popup {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: $zindex-dropdown;
+    background-color: white;
+    border: $border-width solid $border-color;
+    border-radius: $border-radius;
+    box-shadow: $box-shadow;
+    padding: $spacer;
+    margin-top: $spacer * 0.25;
+  }
+}
+
+// File Uploader
+.file-uploader {
+  border: 2px dashed $border-color;
+  border-radius: $border-radius;
+  padding: $spacer;
+  text-align: center;
+  transition: background-color 0.2s, border-color 0.2s;
+  
+  &--dragover {
+    background-color: rgba($primary, 0.05);
+    border-color: $primary;
+  }
+  
+  &__icon {
+    font-size: 2rem;
+    color: $secondary;
+    margin-bottom: $spacer * 0.5;
+  }
+  
+  &__text {
+    margin-bottom: $spacer * 0.5;
+  }
+  
+  &__browse {
+    color: $primary;
+    cursor: pointer;
+    
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// Uploaded files list
+.uploaded-files {
+  .uploaded-file-item {
+    display: flex;
+    align-items: center;
+    padding: $spacer * 0.5;
+    background-color: rgba($light, 0.5);
+    border-radius: $border-radius-sm;
+    margin-bottom: $spacer * 0.25;
+    
+    .btn-remove {
+      margin-left: auto;
+      padding: 0;
+      font-size: 0.875rem;
+      color: $danger;
+    }
+  }
+}

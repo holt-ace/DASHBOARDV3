@@ -1,16 +1,8 @@
-import { validateSearchParams } from '../middleware/validators/searchValidator.js';
 import { Router } from "express";
-import { 
-  validateTimeRange,
-  validateSearchRequest,
-  validateStatusUpdate,
-  validateBulkOperation
-} from "../middleware/validators.js";
-import config from "../../config/index.js";
+import config from "../../config/index.js"; 
 import poService from "../services/POService.js";
 import logger from "../../utils/logger.js";
 import { searchPOsHandler } from "./handlers/searchPOsHandler.js";
-import { updatePOStatusHandler } from "./handlers/updatePOStatusHandler.js";
 import { bulkOperationHandler } from "./handlers/bulkOperationHandler.js";
 
 const router = Router();
@@ -18,7 +10,6 @@ const router = Router();
 /**
  * Create PO endpoint
  */
-router.get('/search', validateSearchParams, searchPOsHandler);
 router.post("/", async (req, res, next) => {
   try {
     const newPO = await poService.createPO(req.body);
@@ -57,8 +48,7 @@ router.post("/metrics", async (req, res, next) => {
  * Calendar view data endpoint
  */
 router.get(
-  "/calendar",
-  validateTimeRange,
+  "/calendar", 
   async (req, res, next) => {
     try {
       const {
@@ -93,7 +83,7 @@ router.get(
 /**
  * Search POs endpoint
  */
-router.get("/search", validateSearchRequest, searchPOsHandler);
+router.get("/search", (req, res, next) => searchPOsHandler(req, res, next, poService));
 
 /**
  * Get unique buyers endpoint
@@ -152,6 +142,20 @@ router.get("/stats", async (req, res, next) => {
 });
 
 /**
+ * Get status workflow configuration
+ */
+router.get("/status/workflow", async (req, res, next) => {
+  try {
+    res.json(config.statusWorkflow);
+  } catch (error) {
+    logger.error("Error fetching status workflow:", {
+      error: error.message,
+    });
+    next(error);
+  }
+});
+
+/**
  * Get PO by number endpoint
  */
 router.get("/:poNumber", async (req, res, next) => {
@@ -171,35 +175,31 @@ router.get("/:poNumber", async (req, res, next) => {
 });
 
 /**
- * Get status workflow configuration
+ * Update PO status endpoint
  */
-router.get("/status/workflow", async (req, res, next) => {
+router.patch("/:poNumber/status", async (req, res, next) => {
   try {
-    res.json(config.statusWorkflow);
-  } catch (error) {
-    logger.error("Error fetching status workflow:", {
-      error: error.message,
+    const { poNumber } = req.params;
+    const { status, notes } = req.body;
+    
+    const updatedPO = await poService.updateStatus(poNumber, status, notes);
+    
+    logger.info("Status updated successfully:", {
+      poNumber, oldStatus: req.body.oldStatus, newStatus: status
     });
+    
+    res.json({ success: true, data: updatedPO });
+  } catch (error) {
     next(error);
   }
 });
-
-/**
- * Update PO status endpoint
- */
-router.patch(
-  "/:poNumber/status",
-  validateStatusUpdate,
-  updatePOStatusHandler,
-);
 
 /**
  * Bulk operations endpoint
  */
 router.post(
   "/bulk",
-  validateBulkOperation,
-  bulkOperationHandler,
+  bulkOperationHandler
 );
 
 /**
@@ -244,5 +244,36 @@ router.put("/:poNumber", async (req, res, next) => {
     }
   }
 });
+
+/**
+ * Delete PO endpoint
+ */
+router.delete("/:poNumber", async (req, res, next) => {
+  try {
+    const result = await poService.deletePO(req.params.poNumber);
+    
+    logger.info("PO deleted:", {
+      poNumber: req.params.poNumber
+    });
+    
+    res.json(result);
+  } catch (error) {
+    logger.error("Error deleting PO:", {
+      poNumber: req.params.poNumber,
+      error: error.message
+    });
+    
+    if (error.message.includes('PO not found')) {
+      res.status(404).json({
+        success: false,
+        error: 'Purchase Order Not Found',
+        details: `No purchase order found with number: ${req.params.poNumber}. Please verify the PO number and try again.`
+      });
+    } else {
+      next(error);
+    }
+  }
+});
+
 
 export default router;

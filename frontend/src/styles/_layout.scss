@@ -1,0 +1,267 @@
+// Layout styles
+// These styles define the core layout structure of the application
+
+// App container
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// Header
+.app-header {
+  height: $header-height;
+  background-color: $primary;
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 $spacer;
+  box-shadow: $box-shadow-sm;
+  position: sticky;
+  top: 0;
+  z-index: $zindex-sticky;
+  
+  &__logo {
+    font-size: 1.25rem;
+    font-weight: $font-weight-bold;
+    display: flex;
+    align-items: center;
+    
+    img {
+      height: 30px;
+      margin-right: $spacer * 0.75;
+    }
+  }
+  
+  &__nav {
+    margin-left: $spacer;
+  }
+  
+  &__actions {
+    margin-left: auto;
+    display: flex;
+    gap: $spacer;
+  }
+}
+
+// Sidebar
+.app-sidebar {
+  width: $sidebar-width;
+  background-color: white;
+  border-right: $border-width solid $border-color;
+  overflow-y: auto;
+  transition: width $sidebar-transition-duration ease;
+  position: relative;
+  
+  &--collapsed {
+    width: $sidebar-width-collapsed;
+    
+    .sidebar-item__text,
+    .sidebar-section__title {
+      display: none;
+    }
+    
+    .sidebar-item {
+      justify-content: center;
+      
+      &__icon {
+        margin-right: 0;
+      }
+    }
+  }
+  
+  &__toggle {
+    position: absolute;
+    bottom: $spacer;
+    right: $spacer;
+    width: 30px;
+    height: 30px;
+    background-color: rgba($secondary, 0.1);
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    
+    &:hover {
+      background-color: rgba($secondary, 0.2);
+    }
+  }
+}
+
+.sidebar-section {
+  margin-bottom: $spacer;
+  
+  &__title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: $secondary;
+    padding: $spacer * 0.75 $spacer;
+    letter-spacing: 0.5px;
+  }
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  padding: ($spacer * 0.625) $spacer;
+  color: $dark;
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+  
+  &__icon {
+    font-size: 1.25rem;
+    margin-right: $spacer * 0.75;
+    width: 20px;
+    text-align: center;
+  }
+  
+  &__text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  &__badge {
+    margin-left: auto;
+    font-size: 0.75rem;
+  }
+  
+  &:hover {
+    background-color: rgba($primary, 0.05);
+  }
+  
+  &--active {
+    background-color: rgba($primary, 0.1);
+    color: $primary;
+    border-left-color: $primary;
+    font-weight: $font-weight-medium;
+  }
+}
+
+// Main content area
+.app-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background-color: #f6f8fa; // Subtle light gray background
+  
+  main {
+    position: relative;
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    
+    .app-sidebar {
+      width: 100%;
+      height: auto;
+      border-right: none;
+      border-bottom: $border-width solid $border-color;
+      
+      &--collapsed {
+        display: none;
+      }
+    }
+  }
+}
+
+// Footer
+.app-footer {
+  height: $footer-height;
+  background-color: $light;
+  border-top: $border-width solid $border-color;
+  display: flex;
+  align-items: center;
+  padding: 0 $spacer;
+  font-size: 0.875rem;
+  color: $secondary;
+  
+  &__copyright {
+    margin-right: auto;
+  }
+  
+  &__links {
+    display: flex;
+    gap: $spacer;
+  }
+}
+
+// Page layouts
+.page-header {
+  margin-bottom: $spacer * 1.5;
+  
+  &__title {
+    font-size: 1.75rem;
+    margin-bottom: $spacer * 0.25;
+  }
+  
+  &__subtitle {
+    color: $secondary;
+    margin-bottom: $spacer * 0.5;
+  }
+  
+  &__actions {
+    margin-top: $spacer;
+    display: flex;
+    gap: $spacer * 0.5;
+  }
+}
+
+// Content layouts
+.content-wrapper {
+  background-color: white;
+  border-radius: $border-radius;
+  padding: $spacer * 1.5;
+  box-shadow: $box-shadow-sm;
+  margin-bottom: $spacer * 1.5;
+}
+
+// Split view for PO detail page
+.split-view {
+  display: flex;
+  gap: $spacer * 1.5;
+  
+  &__main {
+    flex: 1;
+    min-width: 0; // Prevent flex item from overflowing
+  }
+  
+  &__side {
+    width: 350px;
+    
+    @media (max-width: 992px) {
+      width: 300px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    
+    &__side {
+      width: 100%;
+    }
+  }
+}
+
+// Grid layouts
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: $spacer * 1.5;
+  margin-bottom: $spacer * 1.5;
+  
+  &__item {
+    &--full {
+      grid-column: 1 / -1;
+    }
+    
+    &--half {
+      @media (min-width: 992px) {
+        grid-column: span 2;
+      }
+    }
+  }
+}
