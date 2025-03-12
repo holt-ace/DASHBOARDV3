@@ -46,23 +46,41 @@ export class PORepository {
     let dateFilters = {};
     if (startDate || endDate) {
       logger.info("Creating date filters for both createdAt (Date) and orderDate (string format)");
+      logger.debug("[DEBUG] Date filter creation - detailed analysis:", {
+        startDate: startDate instanceof Date ? startDate.toISOString() : startDate,
+        endDate: endDate instanceof Date ? endDate.toISOString() : endDate,
+        startDateType: typeof startDate,
+        endDateType: typeof endDate
+      });
 
       // First, we'll filter by createdAt which is a proper Date object
+      // Also include header.orderDate to catch both types of date fields
       dateFilters = {
-        "createdAt": {}
+        $or: [
+          { "createdAt": {} },
+          { "header.orderDate": {} }
+        ]
       };
 
       if (startDate) {
-        dateFilters.createdAt.$gte = startDate;
+        dateFilters.$or[0].createdAt.$gte = startDate;
+        dateFilters.$or[1]["header.orderDate"].$gte = startDate;
+        logger.debug("[DEBUG] Added start date filter:", { 
+          startDate: startDate instanceof Date ? startDate.toISOString() : startDate 
+        });
       }
 
       if (endDate) {
-        dateFilters.createdAt.$lte = endDate;
+        dateFilters.$or[0].createdAt.$lte = endDate;
+        dateFilters.$or[1]["header.orderDate"].$lte = endDate;
+        logger.debug("[DEBUG] Added end date filter:", { 
+          endDate: endDate instanceof Date ? endDate.toISOString() : endDate 
+        });
       }
     }
 
     const combinedFilters = { ...dateFilters, ...filters };
-    logger.debug("Combined filters for query:", combinedFilters);
+    logger.debug("Combined filters for query:", JSON.stringify(combinedFilters, null, 2));
     
     const options = { batchSize: typeof batchSize === 'number' ? batchSize : 500 };
     logger.debug("Using cursor options:", options);
@@ -86,8 +104,10 @@ export class PORepository {
     let count = 0;
     
     // Process documents in batches
+      let hasProcessedAnyDocs = false;
     try {
       for await (const doc of cursor) {
+          hasProcessedAnyDocs = true;
         results.push(doc);
         
         // Log the first 3 POs to see their date structure
@@ -97,11 +117,35 @@ export class PORepository {
             createdAt: doc.createdAt,
             orderDate: doc.header?.orderDate,
             orderDateType: typeof doc.header?.orderDate,
-            dateObj: doc.header?.orderDate ? new Date(doc.header.orderDate) : null
-          });
+            dateObj: doc.header?.orderDate ? new Date(doc.header.orderDate) : null,
+              dateObjValid: doc.header?.orderDate ? !isNaN(new Date(doc.header.orderDate).getTime()) : false
+            });
+          }
+          
+          count++;
         }
         
-        count++;
+        if (!hasProcessedAnyDocs) {
+          logger.warn("[DEBUG] No documents processed from cursor - possible query issue", {
+            filters: JSON.stringify(combinedFilters, null, 2)
+          });
+          
+          // Try a simpler query to see if the collection has any documents
+          const totalCount = await this.model.countDocuments({});
+          logger.info("[DEBUG] Total documents in collection:", { count: totalCount });
+          
+          if (totalCount > 0) {
+            // Sample a document to check its structure
+            const sampleDoc = await this.model.findOne({});
+            logger.info("[DEBUG] Sample document structure:", {
+              fields: Object.keys(sampleDoc || {}),
+              headerFields: Object.keys(sampleDoc?.header || {}),
+              dateFields: {
+                createdAt: sampleDoc?.createdAt,
+                orderDate: sampleDoc?.header?.orderDate
+              }
+            });
+          }
       }
       
       // Sample the date range of returned POs

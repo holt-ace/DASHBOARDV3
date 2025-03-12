@@ -24,7 +24,22 @@ export default async function configureRouter(poService) {
         (req, res, next) => POUploadHandler(req, res, next, poService)
     );
     router.get("/search", (req, res, next) => searchPOsHandler(req, res, next, poService));
-    router.post("/bulk", (req, res, next) => bulkOperationHandler(req, res, next, poService));
+    router.post("/bulk-operations", (req, res, next) => bulkOperationHandler(req, res, next, poService));
+
+    // Get a single purchase order by PO number
+    router.get("/:poNumber", async (req, res, next) => {
+        try {
+            const { poNumber } = req.params;
+            logger.info(`Fetching purchase order: ${poNumber}`);
+            const po = await poService.getPOByNumber(poNumber);
+            if (!po) {
+                return res.status(404).json({ message: `Purchase order ${poNumber} not found` });
+            }
+            res.json(po);
+        } catch (error) {
+            next(error);
+        }
+    });
 
     // Add routes for debugging
     router.get("/count", async (req, res, next) => {

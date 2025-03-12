@@ -92,7 +92,7 @@ export const WorkflowVisualizer: React.FC<WorkflowVisualizerProps> = ({
         links.push({
           source: key,
           target: targetId,
-          isAvailable: key === currentStatus
+          isAvailable: key === currentStatus && availableTransitions.includes(targetId as POStatus)
         });
       });
     });
@@ -103,7 +103,7 @@ export const WorkflowVisualizer: React.FC<WorkflowVisualizerProps> = ({
   // Fetch workflow data from API
   useEffect(() => {
     const fetchWorkflow = async () => {
-      try {
+      try { 
         setLoading(true);
         const statuses = await ApiService.getStatuses();
         const transformedData = transformWorkflowData(statuses, currentStatus);
@@ -117,6 +117,11 @@ export const WorkflowVisualizer: React.FC<WorkflowVisualizerProps> = ({
 
     fetchWorkflow();
   }, [currentStatus, statusHistory, transformWorkflowData]);
+  
+  // Clear error state when currentStatus or availableTransitions change
+  useEffect(() => {
+    setError(null);
+  }, [currentStatus, availableTransitions]);
 
   // D3 rendering function
   const renderD3 = useCallback((

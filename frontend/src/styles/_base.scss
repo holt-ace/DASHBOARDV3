@@ -1,3 +1,6 @@
+@use 'sass:color';
+@use 'variables' as *;
+
 // Base styles for the application
 // These styles set foundational rules that apply globally
 
@@ -36,7 +39,7 @@ a {
   transition: color 0.2s ease-in-out;
   
   &:hover {
-    color: darken($primary, 15%);
+    color: color.adjust($primary, $lightness: -15%);
   }
 }
 
@@ -45,7 +48,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: $headings-font-weight;
   line-height: 1.2;
   margin-bottom: $spacer;
-  color: darken($dark, 10%);
+  color: color.adjust($dark, $lightness: -10%);
 }
 
 h1 { font-size: 2rem; }

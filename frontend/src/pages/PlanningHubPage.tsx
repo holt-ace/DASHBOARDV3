@@ -1,10 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useMemo } from 'react';
 import { Container, Row, Col, Card, Button, Nav, Tab, Form, Dropdown } from 'react-bootstrap';
-import CalendarView from '@/components/visualizations/CalendarView';
 import { ApiService } from '@/services/ApiService'; 
-import KanbanBoard from '@/components/visualizations/KanbanBoard';
-import TimelineView from '@/components/visualizations/TimelineView'; 
-import GeographicMap from '@/components/visualizations/GeographicMap';
+// Lazy load visualization components
+const CalendarView = lazy(() => import('@/components/visualizations/CalendarView'));
+const KanbanBoard = lazy(() => import('@/components/visualizations/KanbanBoard'));
+const TimelineView = lazy(() => import('@/components/visualizations/TimelineView'));
+const GeographicMap = lazy(() => import('@/components/visualizations/GeographicMap'));
+import Logger from '@/utils/logger';
+import DebugHelper from '@/utils/debugHelper';
+import Navigation from '@/utils/navigation';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 /**
  * PlanningHubPage Component
@@ -42,15 +47,28 @@ const PlanningHubPage: React.FC = () => {
   // Selected items for batch operations
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [isBatchProcessing, setIsBatchProcessing] = useState<boolean>(false);
+  
 
-  // Refresh data on initial load
+  // Refresh data only when view mode changes
   useEffect(() => {
+    DebugHelper.componentDidMount('PlanningHubPage', { viewMode });
     // Preload data for current view
     refreshCurrentView();
+    
+    return () => {
+      DebugHelper.componentWillUnmount('PlanningHubPage');
+    };
   }, [viewMode]);
 
   // Track total PO count
   const [totalPOCount, setTotalPOCount] = useState<number>(0);
+
+  // Create loading placeholder to reduce layout shifts
+  const loadingPlaceholder = useMemo(() => (
+    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '600px' }}>
+      <span className="spinner-border text-primary" style={{ width: '3rem', height: '3rem' }} />
+    </div>
+  ), []);
   
   // Handle calendar view configuration changes
   const handleCalendarViewChange = (field: string, value: string) => {
@@ -98,7 +116,7 @@ const PlanningHubPage: React.FC = () => {
   
   // Refresh the current view data
   const handleTimeRangeChange = (newRange: 'month' | 'quarter' | '6months' | 'year' | 'custom') => {
-    console.log('DEBUG - PlanningHubPage.handleTimeRangeChange called with:', newRange);
+    Logger.debug('PlanningHubPage.handleTimeRangeChange called with:', newRange);
     
     // Set the timeline range state
     if (newRange !== timelineRange) {
@@ -112,39 +130,67 @@ const PlanningHubPage: React.FC = () => {
   };
   
   const refreshCurrentView = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Get date range
+    if (!isLoading) {
+      setIsLoading(true);
+      
+      // Get date range based on current view
       const now = new Date();
       let startDate = new Date(now);
-      startDate.setMonth(startDate.getMonth() - 1); // Default to last 30 days
+      let endDate = new Date(now);
       
-      // Fetch PO data from API (with limit=1 to just get count)
-      const response = await ApiService.fetchPOs({
-        startDate: startDate.toISOString(),
-        endDate: now.toISOString(),
-        limit: 1, 
-        page: 1
-      });
-
-      // Use total from metadata
-      if (response && response.metadata && response.metadata.total !== undefined) {
-        setTotalPOCount(response.metadata.total);
+      // Adjust date ranges based on view mode
+      if (viewMode === 'calendar') {
+        if (calendarDateRange === 'this-month') {
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        } else if (calendarDateRange === 'next-month') {
+          startDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          endDate = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+        } else if (calendarDateRange === 'next-3-months') {
+          startDate = new Date();
+          endDate = new Date();
+          endDate.setMonth(endDate.getMonth() + 3);
+        }
+      } else if (viewMode === 'timeline') {
+        if (timelineRange === 'month') {
+          startDate.setMonth(startDate.getMonth() - 1);
+        } else if (timelineRange === 'quarter') {
+          startDate.setMonth(startDate.getMonth() - 3);
+        } else if (timelineRange === '6months') {
+          startDate.setMonth(startDate.getMonth() - 6);
+        } else if (timelineRange === 'year') {
+          startDate.setFullYear(startDate.getFullYear() - 1);
+        }
       }
-    } catch (err) {
-      console.error('Error refreshing data:', err);
-    } finally {
-      setIsLoading(false);
+      
+      try {
+        // Fetch PO data from API with proper limit
+        const response = await ApiService.fetchPOs({
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          limit: 100, // Get more data for visualizations
+          page: 1
+        });
+  
+        // Store data and counts
+        if (response && response.metadata) {
+          setTotalPOCount(response.metadata.total);
+        }
+      } catch (err) {
+        Logger.error('Error refreshing data:', err);
+      } finally {
+        // Add a small delay to prevent rapid re-requests if user clicks quickly
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 300);
+      }
     }
   };
   
   // Apply filters for the current view
   const handleApplyFilters = () => {
-    console.log('DEBUG - handleApplyFilters called');
-    console.trace('Apply filters call stack');
-    
-    console.log('DEBUG - Filter button clicked - current window.location.href:', window.location.href);
+    Logger.debug('handleApplyFilters called');
+    Logger.debug(`Filter button clicked - current view mode: ${viewMode}`);
     // For now we'll just refresh the data
     // In a more complex implementation, we would pass filter params to the components
     refreshCurrentView();
@@ -152,16 +198,23 @@ const PlanningHubPage: React.FC = () => {
 
   // Handle status change from kanban board drag drop
   const handleStatusChange = async (poNumber: string, newStatus: string) => {
+    Logger.debug(`handleStatusChange called with: ${poNumber}, ${newStatus}`);
+    
     try {
       setIsLoading(true);
       
-      // In a real implementation, this would call an API
-      console.log(`Changing status of ${poNumber} to ${newStatus}`);
+      if (!poNumber || !newStatus) {
+        Logger.error('Invalid arguments for status change');
+        return;
+      }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Call the actual API to update status
+      await ApiService.updateStatus(poNumber, newStatus as any);
+      Logger.info(`Successfully changed status of ${poNumber} to ${newStatus}`);
+      
+      // Refresh data to show the updated status
+      refreshCurrentView();
     } finally {
-      setIsLoading(false);
     }
   };
 
@@ -172,13 +225,13 @@ const PlanningHubPage: React.FC = () => {
     setSelectedItems(items);
     
     // Log selection changes
-    console.log(`Selection changed: ${items.length} items selected: ${items.join(', ')}`);
+    Logger.debug(`Selection changed: ${items.length} items selected: ${items.join(', ')}`);
   };
   
   // Handle batch operation execution
   const handleBatchOperation = (operation: 'statusChange' | 'edit' | 'duplicate' | 'export' | 'delete', params?: Record<string, any>) => {
-    console.log('DEBUG - handleBatchOperation called with:', { operation, params });
-    console.trace('Batch operation call stack');
+    Logger.debug('handleBatchOperation called with:', { operation, params });
+    Logger.debug(`Executing batch operation: ${operation}`, { params });
     
     if (selectedItems.length === 0) return;
     
@@ -187,7 +240,7 @@ const PlanningHubPage: React.FC = () => {
     // Simulate API call with a timeout
     setTimeout(() => {
       // In a real implementation, this would call an API with the operation and selected items
-      console.log(`Executing batch operation: ${operation}`, { selectedItems, params });
+      Logger.info(`Completed batch operation: ${operation}`, { selectedItems, params });
       
       setIsBatchProcessing(false);
       
@@ -199,16 +252,45 @@ const PlanningHubPage: React.FC = () => {
   
   // Handle PO selection in visualizations
   const handlePOSelect = (poNumber: string) => {
-    console.log('DEBUG - handlePOSelect called with:', { poNumber, type: typeof poNumber });
-    console.trace('PO select call stack');
+    Logger.debug('handlePOSelect called with:', { poNumber, type: typeof poNumber });
     
-    if (typeof poNumber === 'string' && poNumber.startsWith('PO')) {
-      // Navigate to the PO detail page
-      console.log('DEBUG - Navigating to PO detail page:', `/purchase-orders/${poNumber}`);
-      window.location.href = `/purchase-orders/${poNumber}`;
-    } else {
-      console.log('DEBUG - Non-PO selection detected:', poNumber);  // For non-PO selections like filter values
-      // Don't navigate for non-PO selections
+    try {
+      if (typeof poNumber === 'string' && poNumber.startsWith('PO')) {
+        // Navigate to the PO detail page
+        Logger.info('[NAVIGATION] Navigating to PO detail page:', `/purchase-orders/${poNumber}`);
+        
+        // Wrap in try-catch to prevent unhandled exceptions from navigation
+        try {
+          Navigation.toPODetail(poNumber);
+        } catch (navError) {
+          Logger.error('[NAVIGATION ERROR] Failed to navigate:', navError);
+        }
+      } else {
+        Logger.debug('[NAVIGATION] Non-PO selection detected:', poNumber);  // For non-PO selections like filter values
+      }
+    } catch (error) {
+      Logger.error('[CRITICAL] Unexpected error in handlePOSelect:', error);
+    }
+  };
+  
+  // Error handler to catch rendering errors for visualization components
+  const handleRenderError = (componentName: string, error: Error) => {
+    Logger.error(`[CRITICAL] Error rendering ${componentName}:`, error);
+    DebugHelper.renderError(componentName, error);
+  };
+  
+  // Wrap component rendering with error handling
+  const safeRender = (node: React.ReactNode, componentName: string): React.ReactNode => {
+    try {
+      Logger.debug(`[RENDER] About to render ${componentName}`);
+      return node;
+    } catch (error) {
+      handleRenderError(componentName, error as Error);
+      return (
+        <div className="alert alert-danger m-3">
+          Error rendering {componentName}. Please check the console for details.
+        </div>
+      );
     }
   };
   
@@ -222,14 +304,12 @@ const PlanningHubPage: React.FC = () => {
         <div className="d-flex align-items-center me-3">
           <span className="badge bg-primary p-2 rounded-pill">
             {isLoading ? "Loading..." : `${totalPOCount} Purchase Orders`}
-          </span>
+          </span> 
         </div>
         
         <div>
-          <Button variant="primary" onClick={() => window.location.href = '/purchase-orders/create'}>
-            {/* Note: This button directly navigates to the purchase order creation page 
-                using window.location.href, which is fine for this specific button,
-                but might cause issues if similar navigation is triggered unintentionally elsewhere */}
+          <Button variant="primary" onClick={() => Navigation.toPOCreation()}>
+            {/* Note: This button navigates to the purchase order creation page */}
             <i className="bi bi-plus-lg me-1"></i>
             New PO
           </Button>
@@ -471,55 +551,64 @@ const PlanningHubPage: React.FC = () => {
       {/* Visualization content */}
       <Card className="mb-4 shadow-sm" style={{ minHeight: '600px' }}>
         <Card.Body className="p-0">
+          <Suspense fallback={loadingPlaceholder}>
           {viewMode === 'calendar' && (
-            <div className="calendar-container">
-              <CalendarView 
+            <div className="calendar-container" style={{ height: '600px' }}>
+              {safeRender(<CalendarView 
                 dateField={calendarDateField} 
-                range={calendarRange} 
+                range={calendarRange}
                 onPOSelect={handlePOSelect} 
                 className="h-100"
-              />
+              />, 'CalendarView')}
             </div>
           )}
           
           {viewMode === 'kanban' && (
-            <div className="kanban-container">
-              <KanbanBoard 
+            <div className="kanban-container" style={{ height: '600px' }}>
+              {safeRender(<KanbanBoard 
                 groupBy={kanbanGroupBy} 
                 sortBy={kanbanSortBy}
                 filterStatus={kanbanFilterStatus}
                 onPOSelect={handlePOSelect}
                 onStatusChange={handleStatusChange}
                 className="h-100"
-              />
+              />, 'KanbanBoard')}
             </div>
           )}
           
           {viewMode === 'timeline' && (
-            <div className="timeline-container">
-              <TimelineView 
-                timeRange={timelineRange} 
-                groupBy={timelineGroupBy}
-                onTimeRangeChange={handleTimeRangeChange}
-                onPOSelect={handlePOSelect}
-                milestoneType={timelineMilestoneType} 
-                className="h-100"
-              />
+            <div className="timeline-container" style={{ height: '600px' }}>
+              {safeRender(
+                <ErrorBoundary 
+                  componentName="TimelineView" 
+                  onRetry={() => refreshCurrentView()}
+                >
+                  <TimelineView 
+                    timeRange={timelineRange} 
+                    groupBy={timelineGroupBy}
+                    onTimeRangeChange={handleTimeRangeChange}
+                    onPOSelect={handlePOSelect}
+                    milestoneType={timelineMilestoneType} 
+                    className="h-100"
+                  />
+                </ErrorBoundary>,
+                'TimelineView')}
             </div>
           )}
           
           {viewMode === 'map' && (
-            <div className="map-container">
-              <GeographicMap 
+            <div className="map-container" style={{ height: '600px' }}>
+              {safeRender(<GeographicMap 
                 region={mapRegion}
                 deliveryStatus={mapDeliveryStatus}
                 timePeriod={mapTimePeriod}
                 onBatchSelectionChange={handleBatchSelectionChange}
                 onPOSelect={handlePOSelect} 
                 className="h-100"
-              />
+              />, 'GeographicMap')}
             </div>
           )}
+          </Suspense>
         </Card.Body>
       </Card>
       

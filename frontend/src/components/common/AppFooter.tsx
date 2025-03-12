@@ -1,12 +1,11 @@
 import React from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
 
 /**
  * AppFooter Component
  * 
- * Footer component for the application that includes company information, 
- * quick links, and copyright notice.
+ * Simple footer component for the application that includes 
+ * version information and copyright notice.
  */
 const AppFooter: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -22,26 +21,8 @@ const AppFooter: React.FC = () => {
             </div>
           </Col>
           
-          <Col md={4} className="text-center">
-            <ul className="list-inline mb-0">
-              <li className="list-inline-item">
-                <Link to="/help" className="text-decoration-none text-muted">
-                  Help
-                </Link>
-              </li>
-              <li className="list-inline-item">•</li>
-              <li className="list-inline-item">
-                <Link to="/privacy" className="text-decoration-none text-muted">
-                  Privacy
-                </Link>
-              </li>
-              <li className="list-inline-item">•</li>
-              <li className="list-inline-item">
-                <Link to="/terms" className="text-decoration-none text-muted">
-                  Terms
-                </Link>
-              </li>
-            </ul>
+          <Col md={4} className="text-center d-none d-md-block">
+            {/* Center column intentionally left empty */}
           </Col>
           
           <Col md={4} className="text-center text-md-end">

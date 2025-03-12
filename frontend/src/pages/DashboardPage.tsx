@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Badge, Dropdown } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState, useAppDispatch } from '@/store';
 import { fetchPurchaseOrders } from '@/store/slices/poListSlice';
-import { fetchMetrics } from '@/store/slices/metricsSlice';
+import { fetchMetrics, setDateRange } from '@/store/slices/metricsSlice';
 
 /**
  * DashboardPage Component
@@ -16,7 +16,7 @@ import { fetchMetrics } from '@/store/slices/metricsSlice';
 const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { items: poItems, loading: poLoading } = useSelector((state: RootState) => state.poList);
-  const { data: metricsData, loading: metricsLoading } = useSelector((state: RootState) => state.metrics);
+  const { data: metricsData, loading: metricsLoading, filters } = useSelector((state: RootState) => state.metrics);
   
   // Fetch data on component mount
   useEffect(() => {
@@ -25,6 +25,66 @@ const DashboardPage: React.FC = () => {
     }));
     dispatch(fetchMetrics());
   }, [dispatch]);
+
+  // Handle time frame selection
+  const handleTimeFrameChange = (timeFrame: string) => {
+    let startDate: string | null = null;
+    let endDate = new Date().toISOString();
+    
+    // Calculate start date based on selected time frame
+    switch (timeFrame) {
+      case 'today':
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        startDate = today.toISOString();
+        break;
+      case 'week':
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        startDate = weekAgo.toISOString();
+        break;
+      case 'month':
+        const monthAgo = new Date();
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        startDate = monthAgo.toISOString();
+        break;
+      case 'quarter':
+        const quarterAgo = new Date();
+        quarterAgo.setMonth(quarterAgo.getMonth() - 3);
+        startDate = quarterAgo.toISOString();
+        break;
+      case 'year':
+        const yearAgo = new Date();
+        yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+        startDate = yearAgo.toISOString();
+        break;
+      case 'all':
+        startDate = null;
+        break;
+    }
+    
+    // Dispatch action to update date range
+    dispatch(setDateRange({ startDate, endDate }));
+    
+    // Fetch updated metrics with the new date range
+    dispatch(fetchMetrics());
+  };
+  
+  // Helper to determine the current time frame label
+  const getCurrentTimeFrameLabel = (): string => {
+    if (!filters.startDate) return 'All Time';
+    
+    const startDate = new Date(filters.startDate);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 1) return 'Today';
+    if (diffDays <= 7) return 'Last 7 Days';
+    if (diffDays <= 31) return 'Last 30 Days';
+    if (diffDays <= 92) return 'Last Quarter';
+    if (diffDays <= 366) return 'Last Year';
+    return 'Custom Range';
+  };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -73,26 +133,52 @@ const DashboardPage: React.FC = () => {
   // Use actual recent POs or an empty array if still loading
   const recentPOs = poItems.slice(0, 4);
 
+  // Prevent default behavior for not-yet-implemented functionality
+  const handleNotImplemented = (e: React.MouseEvent<HTMLElement>, feature: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    alert(`${feature} functionality will be implemented in a future update.`);
+  };
+
   // Get status distribution from metrics or create an empty array
   const statusDistribution = metricsData?.statusDistribution || [];
   
   return (
     <Container fluid>
       <div className="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 className="h2 mb-0 text-gray-800">Dashboard</h1>
         <div>
+          <h1 className="h2 mb-0 text-gray-800">Dashboard</h1>
+          <small className="text-muted">Showing data for: {getCurrentTimeFrameLabel()}</small>
+        </div>
+        
+        <div>
+          <Dropdown className="d-inline-block me-2" onClick={(e) => e.stopPropagation()}>
+            <Dropdown.Toggle variant="outline-primary" size="sm">
+              <i className="bi bi-calendar2-range me-1"></i> Time Frame
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item onClick={() => handleTimeFrameChange('today')}>Today</Dropdown.Item>
+              <Dropdown.Item onClick={() => handleTimeFrameChange('week')}>Last 7 Days</Dropdown.Item>
+              <Dropdown.Item onClick={() => handleTimeFrameChange('month')}>Last 30 Days</Dropdown.Item>
+              <Dropdown.Item onClick={() => handleTimeFrameChange('quarter')}>Last Quarter</Dropdown.Item>
+              <Dropdown.Item onClick={() => handleTimeFrameChange('year')}>Last Year</Dropdown.Item>
+              <Dropdown.Divider />
+              <Dropdown.Item onClick={() => handleTimeFrameChange('all')}>All Time</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
+          
           <Button 
-            variant="primary" 
-            size="sm" 
-            className="me-2">
+            variant="primary"
+            size="sm"
+            className="me-2"
+            onClick={(e) => handleNotImplemented(e, "Generate Report")}>
             <i className="bi bi-download me-1"></i> Generate Report
           </Button>
-          <Button 
-            variant="success" 
-            size="sm">
+          <Link 
+            to="/purchase-orders/create" 
+            className="btn btn-success btn-sm">
             <i className="bi bi-plus-lg me-1"></i> New PO
-            <Link to="/purchase-orders/create" className="stretched-link text-white text-decoration-none"></Link>
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -280,26 +366,22 @@ const DashboardPage: React.FC = () => {
             </Card.Header>
             <Card.Body>
               <div className="d-grid gap-2">
-                <Button variant="primary" className="position-relative">
+                <Link to="/purchase-orders/create" className="btn btn-primary">
                   <i className="bi bi-plus-circle me-2"></i>
                   Create New Purchase Order
-                  <Link to="/purchase-orders/create" className="stretched-link text-white text-decoration-none"></Link>
-                </Button>
-                <Button variant="outline-primary" className="position-relative">
+                </Link>
+                <Link to="/purchase-orders" className="btn btn-outline-primary">
                   <i className="bi bi-search me-2"></i>
                   Search Purchase Orders
-                  <Link to="/purchase-orders" className="stretched-link text-decoration-none"></Link>
-                </Button>
-                <Button variant="outline-primary" className="position-relative">
+                </Link>
+                <Link to="/planning-hub" className="btn btn-outline-primary">
                   <i className="bi bi-calendar3 me-2"></i>
                   Go to Planning Hub
-                  <Link to="/planning-hub" className="stretched-link text-decoration-none"></Link>
-                </Button>
-                <Button variant="outline-primary" className="position-relative">
+                </Link>
+                <Link to="/metrics" className="btn btn-outline-primary">
                   <i className="bi bi-graph-up me-2"></i>
                   View Metrics & Reports
-                  <Link to="/metrics" className="stretched-link text-decoration-none"></Link>
-                </Button>
+                </Link>
               </div>
             </Card.Body>
           </Card>

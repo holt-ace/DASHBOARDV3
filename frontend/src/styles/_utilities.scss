@@ -1,5 +1,8 @@
+@use 'sass:color';
+@use 'variables' as *;
+
 // Utility classes
-// These classes provide single-purpose styling options for quick adjustments
+// These styles provide single-purpose styling options for quick adjustments
 
 // Cursor utilities
 .cursor-pointer { cursor: pointer; }

@@ -1,6 +1,27 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { ModuleFormat } from 'rollup'
+
+// Get environment variables from process.env during build config
+const useEsbuild = process.env.VITE_USE_ESBUILD === 'true'
+
+// Define vendor dependencies for manual chunking
+const vendorDependencies = [
+  'react', 
+  'react-dom', 
+  'react-router-dom',
+  '@reduxjs/toolkit',
+  'react-redux',
+  'axios'
+]
+
+// Define charting dependencies for manual chunking
+const chartingDependencies = [
+  'd3',
+  'chart.js',
+  'leaflet'
+]
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -21,10 +42,10 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
+    port: 3001,
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false
       }
@@ -33,17 +54,34 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    // Use 'terser' for production builds, but fall back to 'esbuild' if terser isn't available
-    // This provides more reliability in different environments
-    minify: process.env.VITE_USE_ESBUILD === 'true' ? 'esbuild' : 'terser',
-    // Configure terser options for better performance/size balance
-    terserOptions: { compress: { drop_console: false, passes: 1 } },
-    sourcemap: false,
-    // Configure splitChunks for better caching
+    chunkSizeWarningLimit: 500, // Set the chunk size warning limit
+    // Use 'terser' for production builds by default
+    minify: useEsbuild ? 'esbuild' : 'terser',
+    terserOptions: { compress: { drop_console: false, passes: 1 } }, // Configure terser options
+    sourcemap: true, // Enable source maps to help with debugging
+    // Configure code splitting for better caching and performance
     rollupOptions: {
       output: {
-        manualChunks: undefined
+        manualChunks: (id: string): string | void => {
+          // Group vendor dependencies
+          if (vendorDependencies.some(dep => id.includes(`/node_modules/${dep}`))) {
+            return 'vendor'
+          }
+          
+          // Group charting and visualization libraries
+          if (chartingDependencies.some(dep => id.includes(`/node_modules/${dep}`))) {
+            return 'charts'
+          }
+          
+          // Dynamic imports for route-based code splitting are handled automatically
+        },
+        // Improve output format
+        format: 'es' as ModuleFormat,
+        // Optimize entry points
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js'
+        }
       }
     }
   }
-})
+)

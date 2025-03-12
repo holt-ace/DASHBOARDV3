@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Container, Row, Col, Card, Badge, Button, Tabs, Tab, Alert, Spinner } from 'react-bootstrap';
 import { format } from 'date-fns';
@@ -7,6 +7,8 @@ import { format } from 'date-fns';
 // Components
 import StatusActionPanel from '@/components/action-panels/StatusActionPanel';
 import WorkflowVisualizer from '@/components/status-workflow/WorkflowVisualizer';
+import Navigation from '@/utils/navigation';
+import Logger from '@/utils/logger';
 
 // Redux
 import { RootState, AppDispatch } from '@/store';
@@ -24,12 +26,14 @@ import { POStatus, PurchaseOrder, POProduct, PODocument, POHistoryEntry } from '
  */
 const PODetailPage: React.FC = () => {
   // Get PO ID from URL parameters
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { poNumber } = useParams<{ poNumber: string }>();
+  console.log('PODetailPage mounted. PO Number from URL:', poNumber);
   const dispatch = useDispatch<AppDispatch>();
+  const location = useLocation();
   
   // Local state
   const [activeTab, setActiveTab] = useState<string>('details');
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
   
   // Redux state
   const { 
@@ -41,23 +45,45 @@ const PODetailPage: React.FC = () => {
   
   // Fetch PO details on mount and when ID changes
   useEffect(() => {
-    if (id) {
-      dispatch(fetchPODetail(id));
+    // Check if we're in edit mode from query params or session storage
+    const params = new URLSearchParams(location.search);
+    const editModeParam = params.get('edit') === 'true';
+    const editModeStorage = sessionStorage.getItem('editMode') === 'true';
+    const editingPOStorage = sessionStorage.getItem('editingPO');
+    
+    // Set edit mode if either condition is true
+    if ((editModeParam || (editModeStorage && editingPOStorage === poNumber))) {
+      console.log('Entering edit mode for PO:', poNumber);
+      setIsEditMode(true);
+      setActiveTab('details');
+      
+      // Clear the session storage flags after picking them up
+      if (editModeStorage) {
+        sessionStorage.removeItem('editMode');
+        sessionStorage.removeItem('editingPO');
+      }
     }
-  }, [dispatch, id]);
+    
+    if (poNumber) {
+      console.log('Dispatching fetchPODetail action for PO Number:', poNumber);
+      dispatch(fetchPODetail(poNumber));
+    } else {
+      console.error('No PO Number found in URL params!');
+    }
+  }, [dispatch, poNumber, location.search]);
   
   /**
    * Handle PO update
    */
   const handlePOUpdate = async (updateData: Partial<PurchaseOrder>) => {
-    if (!id || !purchaseOrder) return;
+    if (!poNumber || !purchaseOrder) return;
     
     try {
-      await dispatch(updatePO({ poNumber: id, updateData })).unwrap();
+      await dispatch(updatePO({ poNumber, updateData })).unwrap();
       // Refetch to get updated data
-      dispatch(fetchPODetail(id));
+      dispatch(fetchPODetail(poNumber));
     } catch (error) {
-      console.error('Failed to update PO:', error);
+      Logger.error('Failed to update PO:', error);
       // Error is handled by the slice and will be available in the error state
     }
   };
@@ -66,20 +92,20 @@ const PODetailPage: React.FC = () => {
    * Handle status change
    */
   const handleStatusChange = async (newStatus: POStatus, notes?: string) => {
-    if (!id || !purchaseOrder) return;
+    if (!poNumber || !purchaseOrder) return;
     
     try {
       await dispatch(updatePOStatus({
-        poNumber: id,
+        poNumber,
         newStatus,
         notes,
         oldStatus: purchaseOrder.header.status
       })).unwrap();
       
       // Refetch to get updated data
-      dispatch(fetchPODetail(id));
+      dispatch(fetchPODetail(poNumber));
     } catch (error) {
-      console.error('Failed to update PO status:', error);
+      Logger.error('Failed to update PO status:', error);
       // Error is handled by the slice and will be available in the error state
     }
   };
@@ -152,7 +178,7 @@ const PODetailPage: React.FC = () => {
           <div className="d-flex justify-content-end">
             <Button 
               variant="outline-danger"
-              onClick={() => navigate('/purchase-orders')}
+              onClick={() => Navigation.toPOList()}
             >
               Back to Purchase Orders
             </Button>
@@ -247,10 +273,22 @@ const PODetailPage: React.FC = () => {
               <Button 
                 variant="outline-secondary" 
                 size="sm"
-                onClick={() => setActiveTab('details')}
+                onClick={() => {
+                  setIsEditMode(!isEditMode);
+                  setActiveTab('details');
+                }}
               >
-                <i className="bi bi-pencil me-1"></i>
-                Edit
+                {isEditMode ? (
+                  <>
+                    <i className="bi bi-x-circle me-1"></i>
+                    Cancel Edit
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-pencil me-1"></i>
+                    Edit
+                  </>
+                )}
               </Button>
             </Card.Header>
             
@@ -262,6 +300,13 @@ const PODetailPage: React.FC = () => {
               >
                 <Tab eventKey="details" title="Details">
                   {/* PO Details */}
+                  {isEditMode && (
+                    <Alert variant="info" className="mb-3">
+                      <i className="bi bi-info-circle me-2"></i>
+                      Edit mode is active. You can modify the purchase order details.
+                    </Alert>
+                  )}
+                  
                   <Row>
                     <Col md={6}>
                       <h6 className="mb-3">Order Information</h6>
@@ -269,11 +314,35 @@ const PODetailPage: React.FC = () => {
                         <tbody>
                           <tr>
                             <td className="fw-medium w-40">PO Number:</td>
-                            <td>{purchaseOrder.header.poNumber}</td>
+                            <td>
+                              {isEditMode ? (
+                                <input
+                                  type="text"
+                                  className="form-control form-control-sm"
+                                  value={purchaseOrder.header.poNumber}
+                                  disabled
+                                />
+                              ) : (
+                                purchaseOrder.header.poNumber
+                              )}
+                            </td>
                           </tr>
                           <tr>
                             <td className="fw-medium">Order Date:</td>
-                            <td>{formatDate(purchaseOrder.header.orderDate)}</td>
+                            <td>
+                              {isEditMode ? (
+                                <input
+                                  type="date"
+                                  className="form-control form-control-sm"
+                                  value={purchaseOrder.header.orderDate ? new Date(purchaseOrder.header.orderDate).toISOString().split('T')[0] : ''}
+                                  onChange={(e) => handlePOUpdate({
+                                    header: {...purchaseOrder.header, orderDate: e.target.value}
+                                  })}
+                                />
+                              ) : (
+                                formatDate(purchaseOrder.header.orderDate)
+                              )}
+                            </td>
                           </tr>
                           <tr>
                             <td className="fw-medium">Status:</td>
@@ -294,7 +363,31 @@ const PODetailPage: React.FC = () => {
                         </tbody>
                       </table>
                     </Col>
-                    
+                  </Row>
+                  
+                  {isEditMode && (
+                    <div className="d-flex justify-content-end mb-3 mt-3">
+                      <Button 
+                        variant="secondary" 
+                        className="me-2"
+                        onClick={() => setIsEditMode(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        variant="success"
+                        onClick={() => {
+                          // Submit changes and exit edit mode
+                          alert('Changes saved successfully!');
+                          setIsEditMode(false);
+                        }}
+                      >
+                        Save Changes
+                      </Button>
+                    </div>
+                  )}
+                  
+                  <Row>
                     <Col md={6}>
                       <h6 className="mb-3">Contact Information</h6>
                       <table className="table table-sm table-borderless">

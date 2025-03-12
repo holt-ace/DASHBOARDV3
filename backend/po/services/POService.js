@@ -41,6 +41,11 @@ export class POService {
         try {
             const existingPO = await this.poRepository.findByNumber(data.header.poNumber);
             
+            // If no PO number is provided and this is a manual PO creation, throw an error
+            if (!data.header.poNumber || data.header.poNumber === '') {
+                throw new ValidationError('PO Number is required. Please enter the customer-provided PO number.');
+            }
+            
             if (existingPO) {
                 logger.info("PO already exists:", { poNumber: data.header.poNumber });
                 return {
@@ -71,6 +76,20 @@ export class POService {
             throw NotFoundError(`PO not found: ${poNumber}`);
         }
         return po;
+    }
+
+    /**
+     * Get a purchase order by its PO number
+     * @param {string} poNumber The PO number to look up
+     * @returns {Promise<Object>} The purchase order object
+     */
+    async getPOByNumber(poNumber) {
+        try {
+            return await this.poRepository.findByNumber(poNumber);
+        } catch (error) {
+            logger.error("Error fetching PO by number:", error);
+            throw error;
+        }
     }
 
     async findPOs(filters = {}) {
@@ -211,7 +230,17 @@ export class POService {
         const filters = {};
         
         if (startDate && endDate) {
-            filters.createdAt = { $gte: startDate, $lte: endDate };
+            // Use both date fields to ensure we catch all POs
+            filters.$or = [
+                { "createdAt": { $gte: startDate, $lte: endDate } },
+                { "header.orderDate": { $gte: startDate, $lte: endDate } }
+            ];
+            
+            logger.debug("POService.buildQueryFilters using date range:", {
+                startDate: startDate instanceof Date ? startDate.toISOString() : startDate,
+                endDate: endDate instanceof Date ? endDate.toISOString() : endDate,
+                dateFilter: JSON.stringify(filters.$or, null, 2)
+            });
         }
         if (buyer) {
             filters["header.buyerInfo.name"] = buyer;

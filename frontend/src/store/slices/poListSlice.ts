@@ -24,6 +24,10 @@ interface POListState {
     buyerIds: string[];
     locationIds: string[];
   };
+  selectedItems: string[]; // Store selected PO numbers for batch operations
+  batchOperations: {
+    processing: boolean;
+  };
 }
 
 /**
@@ -48,6 +52,10 @@ const initialState: POListState = {
     buyerIds: [],
     locationIds: [],
   },
+  selectedItems: [],
+  batchOperations: {
+    processing: false,
+  }
 };
 
 /**
@@ -97,12 +105,57 @@ export const deletePurchaseOrder = createAsyncThunk(
   'poList/deletePurchaseOrder',
   async (poNumber: string, { rejectWithValue, dispatch }) => {
     try {
+      console.log(`[Redux] Attempting to delete PO: ${poNumber}`);
       await ApiService.deletePO(poNumber);
+      console.log(`[Redux] Successfully deleted PO: ${poNumber}`);
       // Refresh the list after deletion
       dispatch(fetchPurchaseOrders({}));
       return poNumber;
     } catch (error) {
+      console.error(`[Redux] Error deleting PO: ${poNumber}`, error);
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete purchase order');
+    }
+  }
+);
+
+/**
+ * Async thunk to perform batch operations on multiple purchase orders
+ */
+export const performBatchOperation = createAsyncThunk(
+  'poList/performBatchOperation',
+  async ({ 
+    poNumbers, 
+    operation, 
+    params 
+  }: { 
+    poNumbers: string[]; 
+    operation: string; 
+    params?: Record<string, any> 
+  }, { rejectWithValue, dispatch }) => {
+    try {
+      if (poNumbers.length === 0) {
+        throw new Error('No purchase orders selected');
+      }
+
+      // Different operations require different API calls
+      if (operation === 'status' && params?.status) {
+        // Update status for multiple POs
+        const result = await ApiService.bulkUpdateStatus(poNumbers, params.status);
+        // Refresh the list after the batch operation
+        dispatch(fetchPurchaseOrders({}));
+        return result;
+      } else if (operation === 'delete') {
+        // Delete multiple POs
+        const result = await Promise.all(
+          poNumbers.map(poNumber => ApiService.deletePO(poNumber))
+        );
+        dispatch(fetchPurchaseOrders({}));
+        return result;
+      } else {
+        throw new Error(`Operation ${operation} not implemented or missing required parameters`);
+      }
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to perform batch operation');
     }
   }
 );
@@ -174,6 +227,33 @@ const poListSlice = createSlice({
       state.filters = initialState.filters;
       state.pagination.page = 1;
     },
+
+    /**
+     * Toggle selection of a purchase order for batch operations
+     */
+    toggleItemSelection: (state, action: PayloadAction<string>) => {
+      const poNumber = action.payload;
+      const index = state.selectedItems.indexOf(poNumber);
+      
+      if (index === -1) {
+        state.selectedItems.push(poNumber);
+      } else {
+        state.selectedItems.splice(index, 1);
+      }
+    },
+
+    /**
+     * Set the selection state for all visible items
+     */
+    selectAllItems: (state, action: PayloadAction<boolean>) => {
+      if (action.payload) {
+        // Select all visible items
+        state.selectedItems = state.items.map(po => po.header.poNumber);
+      } else {
+        // Deselect all
+        state.selectedItems = [];
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -210,9 +290,28 @@ const poListSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
+      // Handle deletePurchaseOrder fulfilled state
+      .addCase(deletePurchaseOrder.fulfilled, (state, action) => {
+        state.loading = false;
+        // Optimistic UI update - the fetch will refresh the actual data
+        state.selectedItems = state.selectedItems.filter(id => id !== action.payload);
+      })
       // Handle deletePurchaseOrder rejected state
       .addCase(deletePurchaseOrder.rejected, (state, action) => {
         state.loading = false;
+        state.error = action.payload as string;
+      })
+      // Handle batch operation states
+      .addCase(performBatchOperation.pending, (state) => {
+        state.batchOperations.processing = true;
+        state.error = null;
+      })
+      .addCase(performBatchOperation.fulfilled, (state) => {
+        state.batchOperations.processing = false;
+        state.selectedItems = []; // Clear selections after successful operation
+      })
+      .addCase(performBatchOperation.rejected, (state, action) => {
+        state.batchOperations.processing = false;
         state.error = action.payload as string;
       });
   },
@@ -226,7 +325,9 @@ export const {
   setDateRange,
   setBuyerIds,
   setLocationIds,
-  resetFilters
+  resetFilters,
+  toggleItemSelection,
+  selectAllItems
 } = poListSlice.actions;
 
 export default poListSlice.reducer;

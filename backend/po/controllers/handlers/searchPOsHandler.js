@@ -2,6 +2,12 @@ import logger from "../../../utils/logger.js";
 
 export const searchPOsHandler = async (req, res, next, poService) => {
   try {
+    logger.info("searchPOsHandler: Request received", {
+      query: req.query,
+      url: req.url,
+      method: req.method
+    });
+    
     const {
       query,
       startDate,
@@ -12,6 +18,36 @@ export const searchPOsHandler = async (req, res, next, poService) => {
       limit,
       offset,
     } = req.query;
+
+    logger.debug("searchPOsHandler: Parsed request parameters", {
+      query,
+      startDate,
+      endDate,
+      status,
+      buyer,
+      syscoLocation,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+    
+    // Validate date parameters
+    if (startDate) {
+      const parsedStartDate = new Date(startDate);
+      logger.debug("searchPOsHandler: Parsed startDate", {
+        raw: startDate,
+        parsed: parsedStartDate,
+        isValid: !isNaN(parsedStartDate.getTime())
+      });
+    }
+    
+    if (endDate) {
+      const parsedEndDate = new Date(endDate);
+      logger.debug("searchPOsHandler: Parsed endDate", {
+        raw: endDate,
+        parsed: parsedEndDate,
+        isValid: !isNaN(parsedEndDate.getTime())
+      });
+    }
 
     const result = await poService.searchPOs({
       query,
@@ -57,6 +93,20 @@ export const searchPOsHandler = async (req, res, next, poService) => {
 
     res.json(result);
   } catch (error) {
+    logger.error("searchPOsHandler: Error searching POs", {
+      error: error.message,
+      stack: error.stack,
+      query: req.query
+    });
+    
+    // Provide a more detailed error response
+    res.status(500).json({
+      success: false,
+      error: "Failed to search purchase orders",
+      message: error.message,
+      code: error.code || "SEARCH_ERROR"
+    });
+    
     next(error);
   }
 };

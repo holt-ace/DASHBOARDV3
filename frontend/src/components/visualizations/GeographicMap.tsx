@@ -3,6 +3,7 @@ import { Card, Alert, Spinner, Button, Dropdown, Badge, Form } from 'react-boots
 import { ApiService } from '@/services/ApiService';
 import { PurchaseOrder, POStatus } from '@/types/purchaseOrder';
 import L from 'leaflet';
+import Logger from '@/utils/logger';
 import 'leaflet/dist/leaflet.css';
 // Note: In a real implementation, we would import these libraries:
 // import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -29,6 +30,7 @@ interface GeographicMapProps {
   timePeriod?: 'current-month' | 'last-3-months' | 'ytd' | 'custom';
   onPOSelect?: (poNumber: string) => void;
   onBatchSelectionChange?: (poNumbers: string[]) => void; // Added for batch operations
+  onComponentRender?: (renderTime: number) => void;
   className?: string;
 }
 
@@ -47,9 +49,13 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
   timePeriod = 'current-month',
   onPOSelect,
   onBatchSelectionChange,
+  onComponentRender,
   className = ''
 }) => {
-  // Ref for the map container
+  // Performance tracking
+  const renderStartTime = useRef<number>(0);
+  
+  // DOM refs
   const mapContainerRef = useRef<HTMLDivElement>(null);
   
   // Map instance and layers
@@ -169,7 +175,7 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
         lng: (Math.random() * 360 - 180) * 0.5  // -90 to 90
       };
     } catch (error) {
-      console.error('Geocoding error:', error);
+      Logger.error('Geocoding error:', error);
       return null;
     }
   };
@@ -199,6 +205,9 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
   
   // Fetch purchase orders from API
   const fetchPurchaseOrders = useCallback(async () => {
+    // Performance measurement
+    renderStartTime.current = performance.now();
+    
     if (loading) {
       setIsRefreshing(false);  // Initial load
     } else {
@@ -232,42 +241,29 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
       });
       
       if (response && response.data && response.data.length > 0) {
-        console.log(`Found ${response.data.length} POs for map`);
+        Logger.info(`Found ${response.data.length} POs for map`);
         setPOCount(response.data.length);
         await processPurchaseOrders(response.data);
         setLastUpdated(new Date());
         setError(null);
-      } else {
-        console.log('No POs found');
-        setError('No purchase order data found in the selected date range.');
-        // Only use mock data in development mode
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Using mock data for development');
-          const mockData = getMockPurchaseOrders();
-          setPOCount(mockData.length);
-          await processPurchaseOrders(mockData);
-          setLastUpdated(new Date());
-          setError('No PO data found. Using sample data for development purposes only.');
-        } else {
-          setPOCount(0);
-          setMapMarkers([]);
-          setLastUpdated(new Date());
+        
+        // Report rendering performance
+        if (onComponentRender) {
+          const renderTime = performance.now() - renderStartTime.current;
+          onComponentRender(renderTime);
         }
-      }
-    } catch (err) {
-      console.error('Error fetching purchase orders:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load map data');
-      
-      // Only use mock data in development mode
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Using mock data for development');
-        const mockData = getMockPurchaseOrders();
-        setPOCount(mockData.length);
-        await processPurchaseOrders(mockData);
       } else {
+        Logger.info('No POs found');
         setPOCount(0);
         setMapMarkers([]);
+        setLastUpdated(new Date());
+        setError('No purchase order data found in the selected date range.');
       }
+    } catch (err) {
+      Logger.error('Error fetching purchase orders:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load map data');
+      setPOCount(0);
+      setMapMarkers([]);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -287,9 +283,15 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
       // Add markers to the map
       if (mapInstance && markersLayer) {
         updateMapMarkers(markers);
+        
+        // Report performance after marker generation
+        if (onComponentRender && renderStartTime.current > 0) {
+          const renderTime = performance.now() - renderStartTime.current;
+          Logger.debug(`[MAP] Markers processed in ${renderTime}ms`);
+        }
       }
     } catch (err) {
-      console.error('Error processing purchase orders:', err);
+      Logger.error('Error processing purchase orders:', err);
       setError(err instanceof Error ? err.message : 'Failed to process map data');
     }
   };
@@ -372,7 +374,7 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
             
             return marker;
           } catch (error) {
-            console.error(`Error processing PO ${po.header.poNumber}:`, error);
+            Logger.error(`Error processing PO ${po.header.poNumber}:`, error);
             return null;
           }
         })
@@ -451,7 +453,7 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
           });
         }
       } catch (error) {
-        console.error('Error fitting bounds:', error);
+        Logger.error('Error fitting bounds:', error);
       }
     }
   }, [mapInstance, markersLayer, selectionMode, selectedPOs]);
@@ -509,6 +511,8 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
     if (!mapContainerRef.current) return;
     
     // Get initial map settings
+    renderStartTime.current = performance.now();
+    
     const { center, zoom } = getMapSettings(localRegion);
     
     // Create Leaflet map
@@ -528,6 +532,8 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
     
     // Fetch data
     fetchPurchaseOrders();
+
+    Logger.debug(`[MAP] Map initialized in ${performance.now() - renderStartTime.current}ms`);
     
     // Cleanup on unmount
     return () => {
@@ -541,6 +547,9 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
   useEffect(() => {
     if (mapInstance && markersLayer) {
       // Update map center and zoom based on region
+      // Performance measurement
+      renderStartTime.current = performance.now();
+      
       const { center, zoom } = getMapSettings(localRegion);
       mapInstance.setView(center, zoom);
       
@@ -552,7 +561,12 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
   // Update markers when selection changes
   useEffect(() => {
     if (mapMarkers.length > 0 && mapInstance && markersLayer) {
+      // Measure performance of marker updates
+      const updateStart = performance.now();
+      
       updateMapMarkers(mapMarkers);
+      
+      Logger.debug(`[MAP] Markers updated in ${performance.now() - updateStart}ms`);
     }
   }, [selectedPOs, mapMarkers, updateMapMarkers]);
   
@@ -651,6 +665,12 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
   // Change region filter
   const handleRegionChange = (newRegion: 'all' | 'north-america' | 'europe' | 'asia-pacific' | 'latin-america') => {
     setLocalRegion(newRegion);
+    
+    // Notify about filter changes if rendering performance tracking is enabled
+    if (onComponentRender) {
+      const updateStart = performance.now();
+      renderStartTime.current = updateStart;
+    }
   };
 
   // Change delivery status filter
@@ -674,199 +694,6 @@ const GeographicMap: React.FC<GeographicMapProps> = ({
     });
   };
   
-  // Get mock purchase orders for fallback
-  const getMockPurchaseOrders = (): Array<PurchaseOrder> => {
-    return [
-      {
-        header: {
-          poNumber: 'PO123456',
-          status: POStatus.CONFIRMED,
-          orderDate: '2025-03-01T08:00:00',
-          buyerInfo: {
-            firstName: 'John',
-            lastName: 'Doe',
-            email: 'john.doe@example.com'
-          },
-          syscoLocation: {
-            name: 'Denver Warehouse',
-            address: '123 Supply Chain Dr, Denver, CO'
-          },
-          deliveryInfo: {
-            date: '2025-03-15T08:00:00',
-            instructions: 'Deliver to loading dock B'
-          }
-        },
-        totalCost: 12500,
-        products: [{ supc: '123', description: 'Item 1', quantity: 100, fobCost: 125, total: 12500 }],
-        weights: { grossWeight: 1000, netWeight: 950 },
-        revision: 1
-      },
-      {
-        header: {
-          poNumber: 'PO123457',
-          status: POStatus.SHIPPED,
-          orderDate: '2025-03-05T10:30:00',
-          buyerInfo: {
-            firstName: 'Jane',
-            lastName: 'Smith',
-            email: 'jane.smith@example.com'
-          },
-          syscoLocation: {
-            name: 'Seattle Distribution',
-            address: '456 Logistics Ave, Seattle, WA'
-          },
-          deliveryInfo: {
-            date: '2025-03-18T09:00:00',
-            instructions: 'Call ahead 30 minutes before arrival'
-          }
-        },
-        totalCost: 8750,
-        products: [{ supc: '456', description: 'Item 2', quantity: 50, fobCost: 175, total: 8750 }],
-        weights: { grossWeight: 800, netWeight: 750 },
-        revision: 1
-      },
-      {
-        header: {
-          poNumber: 'PO123458',
-          status: POStatus.DELIVERED,
-          orderDate: '2025-03-10T09:15:00',
-          buyerInfo: {
-            firstName: 'Robert',
-            lastName: 'Johnson',
-            email: 'robert.johnson@example.com'
-          },
-          syscoLocation: {
-            name: 'Atlanta Hub',
-            address: '789 Supply St, Atlanta, GA'
-          },
-          deliveryInfo: {
-            date: '2025-03-22T08:30:00'
-          }
-        },
-        totalCost: 4300,
-        products: [{ supc: '789', description: 'Item 3', quantity: 20, fobCost: 215, total: 4300 }],
-        weights: { grossWeight: 500, netWeight: 480 },
-        revision: 1
-      },
-      {
-        header: {
-          poNumber: 'PO123459',
-          status: POStatus.UPLOADED,
-          orderDate: '2025-03-12T14:00:00',
-          buyerInfo: {
-            firstName: 'Susan',
-            lastName: 'Miller',
-            email: 'susan.miller@example.com'
-          },
-          syscoLocation: {
-            name: 'Chicago Distribution',
-            address: '101 Warehouse Blvd, Chicago, IL'
-          },
-          deliveryInfo: {
-            date: '2025-03-25T10:00:00'
-          }
-        },
-        totalCost: 6200,
-        products: [{ supc: '101', description: 'Item 4', quantity: 40, fobCost: 155, total: 6200 }],
-        weights: { grossWeight: 600, netWeight: 575 },
-        revision: 1
-      },
-      // Add some international locations for better region filtering demo
-      {
-        header: {
-          poNumber: 'PO123460',
-          status: POStatus.CONFIRMED,
-          orderDate: '2025-03-15T08:00:00',
-          buyerInfo: {
-            firstName: 'Emma',
-            lastName: 'Clark',
-            email: 'emma.clark@example.com'
-          },
-          syscoLocation: {
-            name: 'London Distribution',
-            address: '10 Supply Chain St, London, UK'
-          },
-          deliveryInfo: {
-            date: '2025-03-25T09:00:00'
-          }
-        },
-        totalCost: 9500,
-        products: [{ supc: '234', description: 'Item 5', quantity: 75, fobCost: 126.67, total: 9500 }],
-        weights: { grossWeight: 850, netWeight: 800 },
-        revision: 1
-      },
-      {
-        header: {
-          poNumber: 'PO123461',
-          status: POStatus.SHIPPED,
-          orderDate: '2025-03-07T11:15:00',
-          buyerInfo: {
-            firstName: 'Takashi',
-            lastName: 'Yamamoto',
-            email: 'takashi.yamamoto@example.com'
-          },
-          syscoLocation: {
-            name: 'Tokyo Warehouse',
-            address: '1-1 Supply Chain, Minato-ku, Tokyo, Japan'
-          },
-          deliveryInfo: {
-            date: '2025-03-20T10:00:00'
-          }
-        },
-        totalCost: 7800,
-        products: [{ supc: '345', description: 'Item 6', quantity: 60, fobCost: 130, total: 7800 }],
-        weights: { grossWeight: 700, netWeight: 650 },
-        revision: 1
-      },
-      {
-        header: {
-          poNumber: 'PO123462',
-          status: POStatus.INVOICED,
-          orderDate: '2025-03-09T09:45:00',
-          buyerInfo: {
-            firstName: 'Carlos',
-            lastName: 'Rodriguez',
-            email: 'carlos.rodriguez@example.com'
-          },
-          syscoLocation: {
-            name: 'São Paulo Distribution',
-            address: 'Avenida Paulista 1000, São Paulo, Brazil'
-          },
-          deliveryInfo: {
-            date: '2025-03-21T14:00:00'
-          }
-        },
-        totalCost: 5600,
-        products: [{ supc: '456', description: 'Item 7', quantity: 40, fobCost: 140, total: 5600 }],
-        weights: { grossWeight: 550, netWeight: 520 },
-        revision: 1
-      },
-      {
-        header: {
-          poNumber: 'PO123463',
-          status: POStatus.DELIVERED,
-          orderDate: '2025-03-05T08:30:00',
-          buyerInfo: {
-            firstName: 'James',
-            lastName: 'Wilson',
-            email: 'james.wilson@example.com'
-          },
-          syscoLocation: {
-            name: 'Sydney Warehouse',
-            address: '200 Supply Road, Sydney, Australia'
-          },
-          deliveryInfo: {
-            date: '2025-03-18T09:30:00'
-          }
-        },
-        totalCost: 8900,
-        products: [{ supc: '567', description: 'Item 8', quantity: 70, fobCost: 127.14, total: 8900 }],
-        weights: { grossWeight: 780, netWeight: 750 },
-        revision: 1
-      }
-    ];
-  };
-
   // Render loading state
   if (loading) {
     return (

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React, { Suspense, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Container } from 'react-bootstrap';
 
 // Layout components
@@ -12,14 +12,27 @@ import DashboardPage from '@/pages/DashboardPage';
 import POListPage from '@/pages/POListPage';
 import PODetailPage from '@/pages/PODetailPage';
 import POCreatePage from '@/pages/POCreatePage';
-import PlanningHubPage from '@/pages/PlanningHubPage';
 import MetricsDashboardPage from '@/pages/MetricsDashboardPage';
+import ComingSoonPage from '@/pages/ComingSoonPage';
 import NotFoundPage from '@/pages/NotFoundPage';
+
+// Utilities
+import Navigation from '@/utils/navigation';
 
 // Styles
 import './styles/App.scss';
 
 const App: React.FC = () => {
+  // Get the navigate function from React Router
+  const navigate = useNavigate();
+  // Initialize the navigation utility
+  React.useEffect(() => { Navigation.initialize(navigate); }, [navigate]);
+
+  // Log routes for debugging
+  useEffect(() => {
+    console.log("App component mounted with routes for PO Details");
+  }, []);
+  
   return (
     <div className="app-container d-flex flex-column min-vh-100">
       <AppHeader />
@@ -34,9 +47,18 @@ const App: React.FC = () => {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/purchase-orders" element={<POListPage />} />
               <Route path="/purchase-orders/create" element={<POCreatePage />} />
-              <Route path="/purchase-orders/:poNumber" element={<PODetailPage />} />
-              <Route path="/planning-hub" element={<PlanningHubPage />} />
+              <Route 
+                path="/purchase-orders/:poNumber" 
+                element={
+                  <Suspense fallback={<div className="text-center p-5">Loading purchase order details...</div>}>
+                    <PODetailPage />
+                  </Suspense>
+                } 
+              />
+              <Route path="/planning-hub" element={<ComingSoonPage />} />
               <Route path="/metrics" element={<MetricsDashboardPage />} />
+              <Route path="/reports" element={<ComingSoonPage />} />
+              <Route path="/inventory" element={<ComingSoonPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Container>

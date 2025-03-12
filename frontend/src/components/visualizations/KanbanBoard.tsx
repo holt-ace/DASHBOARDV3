@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, Alert, Spinner, Badge, Button, Dropdown, Modal, Form, Col, Row } from 'react-bootstrap';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 import { PurchaseOrder, POStatus } from '@/types/purchaseOrder';
 import { ApiService } from '@/services/ApiService';
+import Logger from '@/utils/logger';
 import { format } from 'date-fns';
 
 // Props for the KanbanBoard component
@@ -12,6 +13,7 @@ interface KanbanBoardProps {
   filterStatus?: 'all' | 'open' | 'completed' | 'custom';
   onPOSelect?: (poNumber: string) => void;
   onStatusChange?: (poNumber: string, newStatus: POStatus) => void;
+  onComponentRender?: (renderTime: number) => void;
   className?: string;
 }
 
@@ -36,9 +38,13 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   filterStatus = 'all',
   onPOSelect,
   onStatusChange,
+  onComponentRender,
   className = ''
 }) => {
-  // State for columns and purchase orders
+  // Performance tracking
+  const renderStartTime = useRef<number>(performance.now());
+
+  // State
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   
   // Loading and error states
@@ -50,7 +56,8 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   // Filter state
   const [showFilterModal, setShowFilterModal] = useState<boolean>(false);
   const [filterKeyword, setFilterKeyword] = useState<string>("");
-  
+
+  /*
   // Mock purchase orders data
   const mockPurchaseOrders: PurchaseOrder[] = [
     {
@@ -194,10 +201,18 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       revision: 1
     }
   ];
+  */
   
   // Initialize board by grouping purchase orders into columns
   useEffect(() => {
+    const start = performance.now();
+    renderStartTime.current = start;
+    
     fetchData();
+    
+    return () => {
+      Logger.debug(`[KANBAN] Component rerendered in ${performance.now() - start}ms`);
+    };
   }, [localGroupBy, localSortBy]);
   
   // Fetch purchase order data from API
@@ -218,39 +233,35 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
       });
       
       if (response && response.data && response.data.length > 0) {
-        console.log(`Found ${response.data.length} POs for kanban board`);
+        Logger.info(`Found ${response.data.length} POs for kanban board`);
         
         // Group and sort the purchase orders
         const groupedColumns = createGroupedColumns(response.data, localGroupBy, localSortBy);
         setColumns(groupedColumns);
         setLoading(false);
-      } else {
-        console.log('No POs found in API');
         
-        // Only use mock data in development mode
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Using mock data for development');
-          const groupedColumns = createGroupedColumns(mockPurchaseOrders, localGroupBy, localSortBy);
-          setColumns(groupedColumns);
-          setError('No PO data found. Using sample data for development purposes only.');
-        } else {
-          setColumns([]);
-          setError('No purchase order data found in the selected filters.');
+        // Report rendering time if callback is provided
+        if (onComponentRender) {
+          const renderTime = performance.now() - renderStartTime.current;
+          onComponentRender(renderTime);
         }
+      } else {
+        Logger.info('No POs found in API');
+
+        // Don't use mock data anymore to avoid confusing real MongoDB data
+        setColumns([]);
+        setError('No purchase order data found in the selected filters.');
+
         setLoading(false);
       }
     } catch (err) {
-      console.error('Error fetching purchase orders:', err);
+      Logger.error('Error fetching purchase orders:', err);
       setError(`Failed to load kanban board data: ${err instanceof Error ? err.message : String(err)}`);
       
       // Only use mock data in development mode
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Using mock data for development');
-        const groupedColumns = createGroupedColumns(mockPurchaseOrders, localGroupBy, localSortBy);
-        setColumns(groupedColumns);
-      } else {
-        setColumns([]);
-      }
+      setColumns([]);
+      setError('Error loading data: check your network connection');
+
       setLoading(false);
     }
   };
@@ -448,13 +459,13 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
   
   // Handle filter button click
   const handleFilterClick = () => {
-    console.log('Opening filter modal');
+    Logger.debug('Opening filter modal');
     setShowFilterModal(true);
   };
   
   // Handle card selection
   const handleCardClick = (poNumber: string) => {
-    console.log('DEBUG - KanbanBoard.handleCardClick called with poNumber:', poNumber);
+    Logger.debug('KanbanBoard.handleCardClick called with poNumber:', poNumber);
     
     if (onPOSelect) {
       onPOSelect(poNumber);

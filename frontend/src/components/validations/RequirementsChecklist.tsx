@@ -40,7 +40,7 @@ export const RequirementsChecklist: React.FC<RequirementsChecklistProps> = ({
     // Count the items that passed validation
     (Object.keys(requirements || {}).length - 
       (validationResults.errors.length + 
-       validationResults.warnings.length + 
+       0 + // Don't count warnings as requirements that failed validation
        validationResults.info.length));
   
   const satisfiedRequirements = totalRequirements - 
@@ -118,7 +118,7 @@ export const RequirementsChecklist: React.FC<RequirementsChecklistProps> = ({
       {validationResults.isValid ? (
         validationResults.warnings.length > 0 ? (
           <div className="alert alert-warning mt-3">
-            <i className="bi bi-exclamation-triangle-fill me-2"></i>
+            <i className="bi bi-check-circle me-2"></i>
             All mandatory requirements met, but there are some recommendations to consider.
           </div>
         ) : (

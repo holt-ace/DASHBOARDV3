@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Container, Card, Form, Button, Row, Col, Table, Alert } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import Navigation from '@/utils/navigation';
+import { ApiService } from '@/services/ApiService';
+import { POStatus } from '@/types/purchaseOrder';
 
 /**
  * POCreatePage Component
@@ -9,9 +12,10 @@ import { Link, useNavigate } from 'react-router-dom';
  * Includes sections for header information, product items, and additional details.
  */
 const POCreatePage: React.FC = () => {
-  const navigate = useNavigate();
   const [validated, setValidated] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Placeholder state for form data
   const [formData, setFormData] = useState({
@@ -81,8 +85,65 @@ const POCreatePage: React.FC = () => {
     return productItems.reduce((sum, item) => sum + item.total, 0);
   };
 
+  // Format PO data for API submission
+  const formatPOData = () => {
+    // Convert form data to the structure expected by the API
+    return {
+      header: {
+        poNumber: formData.poNumber, // Use customer-provided PO number
+        status: POStatus.UPLOADED, // Initial status for new POs
+        orderDate: formData.orderDate,
+        buyerInfo: {
+          firstName: formData.buyerFirstName,
+          lastName: formData.buyerLastName,
+          email: formData.buyerEmail
+        },
+        syscoLocation: {
+          name: formData.locationName,
+          address: formData.locationAddress
+        },
+        deliveryInfo: {
+          date: formData.deliveryDate || new Date().toISOString(),
+          
+          instructions: formData.deliveryInstructions
+        }
+      },
+      products: productItems.map(item => ({
+        supc: item.supc,
+        description: item.description,
+        quantity: item.quantity,
+        fobCost: item.price,
+        total: item.total
+      })),
+      totalCost: calculateTotal(),
+      weights: {
+        grossWeight: 0,
+        netWeight: 0
+      },
+      revision: 1, // Initial revision number
+      history: []
+    };
+  };
+  
+  // Submit the PO to the API
+  const submitPO = async () => {
+    setIsSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const poData = formatPOData();
+      const response = await ApiService.createPO(poData);
+      setShowSuccess(true);
+      return response;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to create purchase order');
+      return null;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     const form = e.currentTarget;
@@ -91,17 +152,20 @@ const POCreatePage: React.FC = () => {
       setValidated(true);
       return;
     }
-    
-    // Here you would normally submit the data to your API
-    console.log('Form data submitted:', { ...formData, products: productItems });
-    
-    // Show success message
-    setShowSuccess(true);
-    
-    // Navigate to PO details page after a delay
-    setTimeout(() => {
-      navigate('/purchase-orders/PO' + Math.floor(100000 + Math.random() * 900000));
-    }, 2000);
+
+    // Submit data to API
+    const createdPO = await submitPO();
+
+    if (createdPO) {
+      // Navigate to PO details page after a delay
+      setTimeout(() => {
+        const poNumber = createdPO.header.poNumber;
+        Navigation.toPODetail(poNumber);
+      }, 2000);
+    } else {
+      // Error is already handled in submitPO
+      window.scrollTo(0, 0); // Scroll to top to show error
+    }
   };
 
   return (
@@ -123,6 +187,18 @@ const POCreatePage: React.FC = () => {
         </Alert>
       )}
       
+      {errorMessage && (
+        <Alert 
+          variant="danger" 
+          dismissible 
+          onClose={() => setErrorMessage(null)}
+          className="mb-4"
+        >
+          <Alert.Heading>Error Creating Purchase Order</Alert.Heading>
+          <p>{errorMessage}</p>
+        </Alert>
+      )}
+      
       <Form noValidate validated={validated} onSubmit={handleSubmit}>
         {/* Header Information Card */}
         <Card className="mb-4 shadow-sm">
@@ -133,13 +209,20 @@ const POCreatePage: React.FC = () => {
             <Row className="g-3">
               <Col md={6} lg={3}>
                 <Form.Group controlId="poNumber">
-                  <Form.Label>PO Number</Form.Label>
+                  <Form.Label>PO Number *</Form.Label>
+                  <div className="small text-muted mb-1">Enter the customer-provided PO number (6-10 digits)</div>
                   <Form.Control
                     type="text"
-                    placeholder="Auto-generated"
+                    placeholder="e.g., 123456"
                     name="poNumber"
-                    disabled
+                    value={formData.poNumber}
+                    onChange={handleInputChange}
+                    pattern="^\d{6,10}$"
+                    required
                   />
+                  <Form.Control.Feedback type="invalid">
+                    Please enter a valid PO number (6-10 digits).
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               
@@ -427,7 +510,12 @@ const POCreatePage: React.FC = () => {
             <Button variant="outline-primary" className="me-2" type="reset">
               <i className="bi bi-arrow-counterclockwise me-1"></i> Reset
             </Button>
-            <Button variant="success" type="submit">
+            <Button 
+              variant="success" 
+              type="submit" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting && <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>}
               <i className="bi bi-check2-circle me-1"></i> Create Purchase Order
             </Button>
           </div>

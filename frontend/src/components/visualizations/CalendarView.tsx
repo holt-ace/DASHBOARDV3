@@ -5,6 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { ApiService } from '@/services/ApiService';
+import Logger from '@/utils/logger';
 import { PurchaseOrder, POStatus } from '@/types/purchaseOrder';
 
 // Define props for the CalendarView component
@@ -13,6 +14,7 @@ interface CalendarViewProps {
   range?: 'month' | 'week' | 'day';
   onPOSelect?: (poNumber: string) => void;
   onPODrop?: (poNumber: string, newDate: Date) => void;
+  onComponentRender?: (renderTime: number) => void;
   className?: string;
 }
 
@@ -28,9 +30,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   range = 'month',
   onPOSelect,
   onPODrop,
+  onComponentRender,
   className = ''
 }) => {
-  // Reference to the calendar container
+  // Performance tracking
+  const renderStartTime = useRef<number>(0);
+  
+  // DOM References
   const calendarRef = useRef<HTMLDivElement>(null);
   
   // Calendar instance reference
@@ -145,7 +151,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   // Fetch purchase orders from API
   const fetchPurchaseOrders = async () => {
     setLoading(true);
-      
+    renderStartTime.current = performance.now();
+    
     // Get the current date range based on the calendar view
     const now = new Date();
     const startDate = new Date(now);
@@ -162,33 +169,54 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       });
       
       if (response && response.data && response.data.length > 0) {
-        console.log(`Found ${response.data.length} POs for calendar view`);
+        Logger.info(`Found ${response.data.length} POs for calendar view`);
         setPurchaseOrders(response.data);
         setError(null);
+        
+        // Report performance if callback provided
+        if (onComponentRender) {
+          onComponentRender(performance.now() - renderStartTime.current);
+        }
       } else {
-        console.log('No POs found');
+        Logger.info('No POs found');
         
         // Only use mock data in development mode
         if (process.env.NODE_ENV === 'development') {
-          console.log('Using mock data for development');
+          Logger.info('Using mock data for development');
           setPurchaseOrders(mockPOs);
           setError('No PO data found. Using sample data for development purposes only.');
+          
+          // Report performance with mock data if callback provided
+          if (onComponentRender) {
+            onComponentRender(performance.now() - renderStartTime.current);
+          }
         } else {
           setPurchaseOrders([]);
           setError('No purchase order data found in the selected date range.');
+          if (onComponentRender) {
+            onComponentRender(performance.now() - renderStartTime.current);
+          }
         }
       }
     } catch (err) {
-      console.error('Error fetching purchase orders:', err);
+      Logger.error('Error fetching purchase orders:', err);
       
       // Only use mock data in development mode
       if (process.env.NODE_ENV === 'development') {
-        console.log('Using mock data for development');
+        Logger.info('Using mock data for development');
         setPurchaseOrders(mockPOs);
         setError('Failed to fetch data from API. Using sample data for development purposes only.');
+        
+        // Report performance with mock data if callback provided
+        if (onComponentRender) {
+          onComponentRender(performance.now() - renderStartTime.current);
+        }
       } else {
         setPurchaseOrders([]);
         setError('Failed to fetch data from API. Please try again later.');
+        if (onComponentRender) {
+          onComponentRender(performance.now() - renderStartTime.current);
+        }
       }
     } finally {
       setLoading(false);
@@ -198,6 +226,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   // Initialize calendar when component mounts
   useEffect(() => {
     if (calendarRef.current) {
+      renderStartTime.current = performance.now();
       // Fetch purchase orders
       fetchPurchaseOrders();
       
@@ -226,6 +255,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       // Render the calendar
       calendar.render();
       
+      Logger.debug(`[CALENDAR] Initialization completed in ${performance.now() - renderStartTime.current}ms`);
+      
       // Clean up on unmount
       return () => {
         calendar.destroy();
@@ -237,6 +268,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   // Update events when purchase orders change or date field changes
   useEffect(() => {
     if (calendarInstance && purchaseOrders.length > 0) {
+      // Performance measurement
+      const startTime = performance.now();
+      
       // Remove all events
       calendarInstance.removeAllEvents();
       
@@ -286,19 +320,25 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       
       // Add events to calendar
       calendarInstance.addEventSource(events as any[]);
+      
+      // Report event rendering performance
+      const renderTime = performance.now() - startTime;
+      Logger.debug(`[CALENDAR] Events rendered in ${renderTime}ms`);
+      // Don't call onComponentRender here as that would lead to multiple calls
+      // The primary performance measurement is when the data is loaded
     }
   }, [calendarInstance, purchaseOrders, dateFilter]);
   
   // Handle event click (PO selection)
   const handleEventClick = (info: any) => {
     const poNumber = info.event.extendedProps.poNumber;
-    console.log('DEBUG - CalendarView.handleEventClick called with poNumber:', poNumber);
+    Logger.debug('CalendarView.handleEventClick called with poNumber:', poNumber);
     
     if (onPOSelect) {
       onPOSelect(poNumber);
     } else {
       // Default behavior - could navigate to PO detail page
-      console.log(`PO selected: ${poNumber}`);
+      Logger.info(`PO selected: ${poNumber}`);
     }
   };
   
@@ -311,7 +351,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({
       onPODrop(poNumber, newDate);
     } else {
       // Default behavior - log the change
-      console.log(`PO ${poNumber} moved to ${newDate.toISOString()}`);
+      Logger.info(`PO ${poNumber} moved to ${newDate.toISOString()}`);
     }
   };
   
@@ -345,6 +385,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({
   // Handle date field change
   const handleDateFieldChange = (field: 'orderDate' | 'deliveryDate' | 'shipDate' | 'invoiceDate') => {
     setDateFilter(field);
+    
+    if (onComponentRender) {
+      onComponentRender(performance.now()); // Just log that this happened, not measuring performance here
+    }
   };
   
   // Render loading state

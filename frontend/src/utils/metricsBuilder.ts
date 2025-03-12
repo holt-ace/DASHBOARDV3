@@ -1,5 +1,6 @@
 import { PurchaseOrder, POStatus } from '@/types/purchaseOrder';
 import { MetricsData, StatusMetric, TimelineMetric, BuyerMetric, LocationMetric, ProductMetric } from '@/store/slices/metricsSlice';
+import Logger from '@/utils/logger';
 
 /**
  * Builds metrics data directly from PO data rather than relying on metrics endpoints
@@ -10,7 +11,7 @@ export function buildMetricsFromPOs(pos: PurchaseOrder[]): MetricsData {
     return createEmptyMetrics();
   }
 
-  console.log(`Building metrics from ${pos.length} POs`);
+  Logger.info(`Building metrics from ${pos.length} POs`);
 
   // Calculate total value
   const totalValue = pos.reduce((sum, po) => sum + (po.totalCost || 0), 0);

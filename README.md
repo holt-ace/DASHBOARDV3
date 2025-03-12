@@ -1,17 +1,106 @@
-# Purchase Order Management System
+# 📊 Purchase Order Management System
 
-A comprehensive system for managing purchase orders with advanced visualization, analytics, and workflow capabilities.
+A comprehensive command center for managing purchase orders with advanced visualization, analytics, and workflow capabilities. This system provides a dynamic interface to track, analyze, and process purchase orders throughout their entire lifecycle.
 
-## Project Structure
+## 📑 Table of Contents
+
+- [Key Features](#key-features)
+- [Architecture Overview](#architecture-overview)
+- [Technical Stack](#technical-stack)
+- [Directory Structure](#directory-structure)
+- [Setup and Installation](#setup-and-installation)
+- [Available Commands](#available-commands)
+- [Development Guidelines](#development-guidelines)
+- [Visualizations and Analytics](#visualizations-and-analytics)
+- [Deployment](#deployment)
+
+## ✨ Key Features
+
+- 🔄 **Dynamic Purchase Order Lifecycle Experience** - Interactive, visual workflow that adapts to each stage of the PO lifecycle
+- 🌐 **Multi-dimensional Planning & Visualization Hub** - Visualize POs in multiple contexts:
+  - 📅 Calendar view for date-based planning
+  - 📋 Kanban board for status-based management
+  - ⏱️ Timeline view for chronological analysis
+  - 🗺️ Geographic map for location-based insights
+- 📈 **Intelligent Metrics & Analytics Dashboard** - Comprehensive analytics with actionable business intelligence
+- 🧩 **Contextual Action Panels** - Stage-specific interfaces that provide relevant tools based on PO status
+- ✅ **Smart Validation System** - Real-time form validation that enforces business rules
+- 📁 **Document Management** - Upload, process, and track documents associated with purchase orders
+- 🔍 **Search and Filtering** - Advanced search capabilities with saved filters and complex queries
+- ⚡ **Batch Processing** - Perform operations on multiple POs simultaneously
+
+## 🏗️ Project Structure
 
 This project consists of two main components:
 
-1. **Frontend**: A modern React application with TypeScript, Redux, and Vite
-2. **Backend**: An Express.js server with MongoDB integration
+1. 🖥️ **Frontend**: A modern React application with TypeScript, Redux Toolkit, and Vite
+2. 🔌 **Backend**: An Express.js server with MongoDB integration and structured API endpoints
 
-## Development Setup
+## 🔭 Architecture Overview
 
-### Prerequisites
+### 🖥️ Frontend Architecture
+
+The frontend follows a modern component-based architecture:
+
+- **Component Structure**: Organized by feature and responsibility
+- **State Management**: Centralized with Redux Toolkit and slice pattern
+- **Routing**: Client-side routing with React Router
+- **Styling**: SCSS modules with utility classes and component-specific styles
+- **API Integration**: Type-safe API client with Axios
+- **Visualization**: Integrated D3.js, Chart.js, and Leaflet for advanced visualizations
+
+### 🔌 Backend Architecture
+
+The backend follows a layered architecture:
+
+- **Controller Layer**: Handles HTTP requests/responses
+- **Service Layer**: Contains business logic and orchestration
+- **Repository Layer**: Handles data access and persistence
+- **Model Layer**: Defines data structures and schemas
+- **Middleware**: Processes requests before they reach route handlers
+- **Utilities**: Shared helper functions and common code
+
+### 🔄 Data Flow
+
+1. Client sends requests to API endpoints
+2. Controllers validate input and route to appropriate services
+3. Services implement business logic and interact with repositories
+4. Repositories interact with the database and return data
+5. Services transform data into the format expected by clients
+6. Controllers send responses back to the client
+
+## 🛠️ Technical Stack
+
+### 🖥️ Frontend
+
+- **Core**: React 18+ with TypeScript
+- **State Management**: Redux Toolkit
+- **UI Framework**: Bootstrap 5 with React Bootstrap components
+- **Build Tool**: Vite 6
+- **Styling**: SCSS with modern module system
+- **HTTP Client**: Axios with typed responses
+- **Form Handling**: Formik with Yup validation
+- **Visualizations**:
+  - 📊 Charts: Chart.js with react-chartjs-2
+  - 🗺️ Maps: Leaflet with react-leaflet
+  - 📈 Data Visualization: D3.js
+  - 📅 Calendar: FullCalendar
+  - 🔄 Drag-and-Drop: react-beautiful-dnd
+
+### 🔌 Backend
+
+- **Runtime**: Node.js 18+
+- **Framework**: Express.js
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JSON Web Tokens
+- **Validation**: Custom schema validation
+- **PDF Processing**: Custom PDF processor with LangChain integration
+- **Error Handling**: Centralized error handling middleware
+- **Logging**: Custom logger with rotating file storage
+
+## 🚀 Development Setup
+
+### 📋 Prerequisites
 
 - Node.js 18+ and npm
 - MongoDB running locally or accessible via URI
@@ -57,7 +146,7 @@ To test the full integration as it would work in production:
 3. Access the integrated application:
    - http://localhost:3000
 
-## API Endpoints
+## 🔌 API Endpoints
 
 The backend provides the following API endpoints:
 
@@ -70,11 +159,95 @@ The backend provides the following API endpoints:
 - `GET /api/po/metrics` - Get purchase order metrics
 - `GET /api/po/metrics/detailed` - Get detailed metrics
 
-## Deployment to Production
+## 📂 Directory Structure
 
-To deploy the application to production:
+### Frontend Structure
 
-1. Run the deployment script:
+```
+frontend/
+├── src/                   # Source code
+│   ├── components/        # Reusable UI components
+│   │   ├── action-panels/ # Status-specific action panels
+│   │   ├── charts/        # Chart components
+│   │   ├── common/        # Common UI elements
+│   │   ├── status-workflow/ # Status workflow components
+│   │   ├── validations/   # Form validation components
+│   │   └── visualizations/ # Data visualization components
+│   ├── hooks/             # Custom React hooks
+│   ├── pages/             # Page components
+│   ├── services/          # API and business logic services
+│   ├── store/             # Redux store configuration
+│   │   └── slices/        # Redux slices for state management
+│   ├── styles/            # Global and component styles
+│   ├── types/             # TypeScript type definitions
+│   └── utils/             # Utility functions
+├── public/                # Static files
+├── vite.config.ts         # Vite configuration
+└── tsconfig.json          # TypeScript configuration
+```
+
+### Backend Structure
+
+```
+backend/
+├── config/                # Configuration files
+├── core/                  # Core functionality
+│   ├── database.js        # Database connection
+│   ├── metrics.js         # Metrics calculation
+│   ├── schema/            # Schema definitions
+│   ├── status/            # Status definitions and transitions
+│   └── validation/        # Validation logic
+├── middleware/            # Express middleware
+├── po/                    # Purchase Order module
+│   ├── controllers/       # Request handlers
+│   ├── middleware/        # PO-specific middleware
+│   ├── models/            # Mongoose models
+│   ├── repositories/      # Data access layer
+│   ├── routes/            # API route definitions
+│   └── services/          # Business logic
+│       └── PDFProcessor/  # PDF processing service
+├── public/                # Served static files (frontend build)
+├── utils/                 # Utility functions
+└── server.js              # Main server entry point
+```
+
+## 📝 Development Guidelines
+
+### 💻 Code Style
+
+- **TypeScript**: Use strict typing for all new code
+- **Component Structure**: Follow functional component pattern with hooks
+- **State Management**: Use Redux for global state, React hooks for local state
+- **CSS Methodology**: Use BEM naming convention with SCSS modules
+- **Error Handling**: Implement proper error boundaries and try/catch patterns
+
+### ⭐ Best Practices
+
+- 🧪 **Testing**: Write unit tests for critical business logic
+- ⚡ **Performance**: Implement code splitting, memoization, and optimized rendering
+- ♿ **Accessibility**: Ensure UI components are accessible (WCAG AA compliance)
+- 👀 **Code Reviews**: All changes should be reviewed before merging
+- 📚 **Documentation**: Document complex logic and component APIs
+
+## 📊 Visualizations and Analytics
+
+The system provides several visualization modes:
+
+- 📅 **Calendar View**: Displays POs by date with drag-and-drop capabilities
+- 📋 **Kanban Board**: Organizes POs by status with drag-and-drop transitions
+- ⏱️ **Timeline**: Shows PO lifecycle with status milestones
+- 🗺️ **Geographic Map**: Visualizes POs based on location data
+- 📈 **Metrics Dashboard**: Displays KPIs, trends, and forecasts
+
+## 🚀 Deployment
+
+For detailed deployment instructions, see [Build and Deployment Guide](./docs/build-and-deployment-guide.md).
+
+### Quick Deployment
+
+To quickly deploy the application for testing:
+
+1. Run the deployment script to build and prepare the application:
    ```bash
    ./deploy.sh
    ```
@@ -88,18 +261,8 @@ To deploy the application to production:
    NODE_ENV=production npm start
    ```
 
-## Implementation Details
+## 📚 Additional Documentation
 
-The application implements three key innovations:
-
-1. **Dynamic Purchase Order Lifecycle Experience** - An interactive, visual, and contextual experience that adapts to each stage of the PO lifecycle.
-
-2. **Multi-dimensional Planning & Visualization Hub** - A versatile interface for visualizing POs in multiple contexts (calendar, kanban, timeline, map).
-
-3. **Intelligent Metrics & Analytics Dashboard** - A comprehensive analytics dashboard that provides actionable business intelligence.
-
-## Contributing
-
-1. Create a new branch for your feature
-2. Make changes and test thoroughly
-3. Submit a pull request with a detailed description of changes
+- 📝 [Implementation Plan](./docs/po-management-system-implementation-plan.md)
+- 🚀 [Build and Deployment Guide](./docs/build-and-deployment-guide.md)
+- 👀 [Code Review Summary](./docs/code-review-summary.md)

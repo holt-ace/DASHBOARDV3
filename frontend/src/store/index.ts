@@ -1,5 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { useDispatch, useSelector, TypedUseSelectorHook } from 'react-redux';
+import { isProduction } from '@/utils/env';
 import poListReducer from './slices/poListSlice';
 import poDetailReducer from './slices/poDetailSlice';
 import visualizationReducer from './slices/visualizationSlice';
@@ -19,7 +20,7 @@ export const store = configureStore({
     ui: uiReducer,
   },
   // Enable Redux DevTools in development environment
-  devTools: process.env.NODE_ENV !== 'production',
+  devTools: !isProduction(),
   middleware: (getDefaultMiddleware) => 
     getDefaultMiddleware({
       serializableCheck: {

@@ -90,7 +90,7 @@ const AppSidebar: React.FC = () => {
         
         {!collapsed && (
           <>
-            <div className="sidebar-divider my-3"></div>
+            <div className="sidebar-divider my-2"></div>
             
             <div className="sidebar-heading px-3 py-2 text-muted text-uppercase small">
               Quick Actions
@@ -115,57 +115,25 @@ const AppSidebar: React.FC = () => {
                   `nav-link d-flex align-items-center ${isActive ? 'active' : ''}`
                 }
               >
-                <i className="bi bi-file-earmark-bar-graph me-3"></i>
+                <i className="bi bi-bar-chart me-3"></i>
                 <span>Reports</span>
               </NavLink>
             </Nav.Item>
             
-            <div className="sidebar-divider my-3"></div>
-            
-            <div className="sidebar-heading px-3 py-2 text-muted text-uppercase small">
-              Support
-            </div>
-            
             <Nav.Item as="li">
               <NavLink 
-                to="/help" 
+                to="/inventory" 
                 className={({isActive}) => 
                   `nav-link d-flex align-items-center ${isActive ? 'active' : ''}`
                 }
               >
-                <i className="bi bi-question-circle me-3"></i>
-                <span>Help & Documentation</span>
-              </NavLink>
-            </Nav.Item>
-            
-            <Nav.Item as="li">
-              <NavLink 
-                to="/settings" 
-                className={({isActive}) => 
-                  `nav-link d-flex align-items-center ${isActive ? 'active' : ''}`
-                }
-              >
-                <i className="bi bi-gear me-3"></i>
-                <span>Settings</span>
+                <i className="bi bi-box-seam me-3"></i>
+                <span>Inventory</span>
               </NavLink>
             </Nav.Item>
           </>
         )}
       </Nav>
-      
-      {!collapsed && (
-        <div className="sidebar-footer p-3 mt-auto">
-          <div className="d-flex align-items-center bg-light p-2 rounded">
-            <div className="avatar-circle bg-primary text-white me-3">
-              <span>AJ</span>
-            </div>
-            <div>
-              <div className="fw-bold">Alex Johnson</div>
-              <div className="text-muted small">Procurement Manager</div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

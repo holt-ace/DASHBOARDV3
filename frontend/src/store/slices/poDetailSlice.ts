@@ -30,8 +30,16 @@ export const fetchPODetail = createAsyncThunk(
   async (poNumber: string, { rejectWithValue }) => {
     try {
       const purchaseOrder = await ApiService.fetchPO(poNumber);
-      const transitions = await ApiService.getAvailableTransitions(purchaseOrder.header.status);
-      return { purchaseOrder, transitions };
+      
+      // Temporarily use empty transitions array to avoid 404 error
+      // We'll implement this properly once the status transitions endpoint is fixed
+      let transitions: POStatus[] = [];
+      try {
+        transitions = await ApiService.getAvailableTransitions(purchaseOrder.header.status);
+      } catch (transError) {
+        console.warn('Could not fetch transitions, using empty array:', transError);
+      }
+      return { purchaseOrder, transitions };      
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch purchase order');
     }

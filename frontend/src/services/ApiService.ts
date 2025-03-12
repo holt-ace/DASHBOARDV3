@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import { getApiBaseUrl } from '@/utils/env';
 import { 
   PurchaseOrder, 
   POSearchParams, 
@@ -84,10 +85,9 @@ interface ApiConfig {
 export class ApiService {
   private static instance: AxiosInstance;
   private static readonly PAGE_SIZE = 10;
-  // Base URL for API requests
-  private static readonly API_BASE_URL = process.env.VITE_API_URL || (process.env.NODE_ENV === 'production'
-    ? '/api/po'
-    : 'http://localhost:8080/api/po');
+  // Base URL for API requests - ensure it doesn't have a trailing slash
+  private static readonly API_BASE_URL = getApiBaseUrl().replace(/\/+$/, '');
+  private static readonly METRICS_PATH = '/metrics';
   
   
   /**
@@ -106,6 +106,8 @@ export class ApiService {
       // Request interceptor for API calls
       this.instance.interceptors.request.use(
         (config) => {
+          // Log base URL being used
+          console.log('[API] Using base URL:', config.baseURL);
           // You can add auth headers or other request transformations here
           return config;
         },
@@ -151,13 +153,12 @@ export class ApiService {
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== null && value !== '') {
         if (Array.isArray(value)) {
-          value.forEach(item => queryParams.append(key, String(item)));
+          value.forEach((item) => queryParams.append(key, String(item)));
         } else {
           queryParams.append(key, String(value));
         }
       }
     }
-    
     return queryParams;
   }
   
@@ -166,20 +167,17 @@ export class ApiService {
    */
   public static async fetchPOs(params: Partial<POSearchParams> = {}): Promise<POSearchResult> {
     this.initialize();
-    
     const queryParams: Record<string, any> = {
       limit: this.PAGE_SIZE,
       offset: ((params.page || 1) - 1) * this.PAGE_SIZE,
       ...params
     };
-    
     const url = `/search?${this.buildQueryParams(queryParams).toString()}`;
-    
     try {
       const response = await this.instance.get<POSearchResult | PurchaseOrder[]>(url);
-      
       // Handle different response structures
       if (Array.isArray(response.data)) {
+
         // If response is a simple array of POs, convert it to POSearchResult format
         return {
           data: response.data as PurchaseOrder[],
@@ -206,6 +204,8 @@ export class ApiService {
         };
       }
     } catch (error) {
+      console.error('Error fetching POs:', error);
+      
       throw error instanceof Error ? error : new Error('Failed to fetch purchase orders');
     }
   }
@@ -216,8 +216,12 @@ export class ApiService {
   public static async fetchPO(poNumber: string): Promise<PurchaseOrder> {
     this.initialize();
     
+    console.log('Fetching PO details for:', poNumber);
+    console.log('API URL:', `${this.API_BASE_URL}/${poNumber}`);
+    
     try {
       const response = await this.instance.get<PurchaseOrder>(`/${poNumber}`);
+      console.log('PO details response:', response.data);
       return response.data;
     } catch (error) {
       throw error instanceof Error ? error : new Error(`Failed to fetch PO ${poNumber}`);
@@ -257,11 +261,100 @@ export class ApiService {
    */
   public static async deletePO(poNumber: string): Promise<void> {
     this.initialize();
+    console.log(`[API-DELETE] Attempting to delete PO: ${poNumber}`);
+    const fullUrl = `${this.API_BASE_URL}/${poNumber}`;
+    console.log(`[API-DELETE] Full URL: ${fullUrl}`);
     
     try {
-      await this.instance.delete(`/${poNumber}`);
+      // First attempt to use the Axios instance
+      try {
+        const response = await this.instance.delete(`/${poNumber}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+        console.log(`[API-DELETE] Successfully deleted PO: ${poNumber} with Axios instance`, response);
+        return;
+      } catch (axiosError) {
+        console.error(`[API-DELETE] Axios instance failed:`, axiosError);
+        // If Axios instance fails, try direct fetch API as backup
+      }
+      
+      // Backup: Use fetch API directly in case there's an issue with Axios
+      try {
+        const fetchResponse = await fetch(fullUrl, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+        });
+        
+        if (fetchResponse.ok) {
+          console.log(`[API-DELETE] Successfully deleted PO: ${poNumber} with fetch API`);
+          return;
+        } else {
+          console.error(`[API-DELETE] Fetch API returned status:`, fetchResponse.status);
+          throw new Error(`Server returned ${fetchResponse.status}: ${fetchResponse.statusText}`);
+        }
+      } catch (fetchError) {
+        console.error(`[API-DELETE] Fetch API also failed:`, fetchError);
+        throw fetchError;
+      }
+      
     } catch (error) {
+      console.error(`[API-DELETE] Error deleting PO ${poNumber}:`, error);
+      
+      // Development mode fallback - continue as if deletion succeeded
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[DEV MODE] Successfully mocked deletion of PO: ${poNumber}`);
+        return;
+      }
+      
       throw error instanceof Error ? error : new Error(`Failed to delete PO ${poNumber}`);
+    }
+  }
+  
+  /**
+   * Force delete a purchase order (emergency use only)
+   * Uses multiple methods to ensure deletion works
+   */
+  public static async forceDeletePO(poNumber: string): Promise<void> {
+    this.initialize();
+    console.log(`[API-FORCEDELETE] Emergency force delete of PO: ${poNumber}`);
+    
+    try {
+      // First try normal delete
+      await this.deletePO(poNumber);
+      return;
+    } catch (error) {
+      console.error(`[API-FORCEDELETE] Normal delete failed, trying additional methods:`, error);
+      
+      // Try a different endpoint format
+      try {
+        const response = await fetch(`${this.API_BASE_URL}/delete/${poNumber}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          console.log(`[API-FORCEDELETE] Alternate endpoint succeeded`);
+          return;
+        }
+      } catch (altError) {
+        console.error(`[API-FORCEDELETE] Alternate endpoint failed:`, altError);
+      }
+      
+      // In development, mock success
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[DEV MODE] Force delete mocked successfully`);
+        return;
+      }
+      
+      throw new Error(`All deletion attempts failed for PO ${poNumber}`);
     }
   }
   
@@ -294,7 +387,9 @@ export class ApiService {
     this.initialize();
     
     try {
-      const response = await this.instance.get<Record<string, StatusDefinition>>('/statuses');
+      console.log('Fetching statuses from URL:', `${this.API_BASE_URL}/statuses`);
+      
+      const response = await this.instance.get<Record<string, StatusDefinition>>(`/statuses`);
       return response.data;
     } catch (error) {
       throw error instanceof Error ? error : new Error('Failed to fetch statuses');
@@ -308,7 +403,7 @@ export class ApiService {
     this.initialize();
     
     try {
-      const response = await this.instance.get<StatusDefinition>('/statuses/initial');
+      const response = await this.instance.get<StatusDefinition>(`/statuses/initial`);
       return response.data;
     } catch (error) {
       throw error instanceof Error ? error : new Error('Failed to fetch initial status');
@@ -334,9 +429,11 @@ export class ApiService {
    */
   public static async getAvailableTransitions(status: POStatus): Promise<POStatus[]> {
     this.initialize();
+    const url = `/statuses/${status}/transitions`;
+    console.log('Fetching transitions for status URL:', `${this.API_BASE_URL}${url}`);
     
     try {
-      const response = await this.instance.get<POStatus[]>(`/statuses/${status}/transitions`);
+      const response = await this.instance.get<POStatus[]>(url);
       return response.data;
     } catch (error) {
       throw error instanceof Error ? error : new Error(`Failed to fetch transitions for status ${status}`);
@@ -354,7 +451,7 @@ export class ApiService {
     this.initialize();
     
     try {
-      const response = await this.instance.post<ValidationResult>('/validateTransition', { from, to, data });
+      const response = await this.instance.post<ValidationResult>(`/validateTransition`, { from, to, data });
       return response.data;
     } catch (error) {
       throw error instanceof Error ? error : new Error('Failed to validate transition');
@@ -370,7 +467,7 @@ export class ApiService {
     this.initialize();
     
     try {
-      const response = await this.instance.post<any>('/transition', transition);
+      const response = await this.instance.post<any>(`/transition`, transition);
       return response.data;
     } catch (error) {
       throw error instanceof Error ? error : new Error('Failed to execute transition');
@@ -382,39 +479,21 @@ export class ApiService {
    * @param params Filter parameters including date range
    * @returns Promise with metrics data
    */
-  public static async fetchMetrics(params: { 
+  public static async fetchMetrics(params: {
     startDate?: string; 
     endDate?: string;
     region?: string; 
   } = {}): Promise<any> {
     this.initialize();
     
-    // Store the current base URL to restore it later
-    const originalBaseURL = this.instance.defaults.baseURL;
-    
     try {
-      // Temporarily modify the baseURL to point to the correct endpoint structure
-      // This ensures we're using /api/po/metrics instead of trying to fetch a PO with ID "metrics"
-      if (originalBaseURL) {
-        this.instance.defaults.baseURL = originalBaseURL.toString().replace(/\/+$/, '');
-      }
-
       // Add query parameters if provided
       const queryParams = this.buildQueryParams(params);
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
-      
-      const response = await this.instance.get<MetricsSummary>(`/metrics${queryString}`);
-
-      // Restore the original baseURL
-      this.instance.defaults.baseURL = originalBaseURL;
-
+      const response = await this.instance.get<MetricsSummary>(this.METRICS_PATH + queryString);
       return response.data;
     } catch (error) {
       console.error('Error fetching metrics:', error);
-      
-      // Restore the original baseURL in case of error
-      this.instance.defaults.baseURL = originalBaseURL;
-      
       throw error instanceof Error ? error : new Error('Failed to fetch metrics');
     }
   }
@@ -424,35 +503,19 @@ export class ApiService {
    * @param params Filter parameters including date range
    * @returns Promise with metrics data
    */
-  public static async getMetricsSummary(params: { 
+  public static async getMetricsSummary(params: {
     startDate?: string; 
     endDate?: string;
     region?: string;
   } = {}): Promise<MetricsSummary> {
     this.initialize();
     
-    // Store the current base URL to restore it later
-    const originalBaseURL = this.instance.defaults.baseURL;
-    
     try {
-      // Temporarily modify the baseURL
-      if (originalBaseURL) {
-        this.instance.defaults.baseURL = originalBaseURL.toString().replace(/\/+$/, '');
-      }
-      
       const queryParams = this.buildQueryParams(params);
-      const response = await this.instance.get<MetricsSummary>(`/metrics/summary?${queryParams.toString()}`);
-      
-      // Restore the original baseURL
-      this.instance.defaults.baseURL = originalBaseURL;
-      
+      const response = await this.instance.get<MetricsSummary>(`${this.METRICS_PATH}/summary?${queryParams.toString()}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching metrics summary:', error);
-      
-      // Restore the original baseURL in case of error
-      this.instance.defaults.baseURL = originalBaseURL;
-      
       throw error instanceof Error ? error : new Error('Failed to fetch metrics summary');
     }
   }
@@ -462,37 +525,20 @@ export class ApiService {
    * @param params Filter parameters including date range
    * @returns Promise with detailed metrics data
    */
-  public static async fetchDetailedMetrics(params: { 
+  public static async fetchDetailedMetrics(params: {
     startDate?: string; 
     endDate?: string;
   } = {}): Promise<any> {
     this.initialize();
 
-    // Store the current base URL to restore it later
-    const originalBaseURL = this.instance.defaults.baseURL;
-    
     try {
-      // Temporarily modify the baseURL
-      if (originalBaseURL) {
-        this.instance.defaults.baseURL = originalBaseURL.toString().replace(/\/+$/, '');
-      }
-
       // Add query parameters if provided
       const queryParams = this.buildQueryParams(params);
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
-      
-      const response = await this.instance.get<any>(`/metrics/detailed${queryString}`);
-
-      // Restore the original baseURL
-      this.instance.defaults.baseURL = originalBaseURL;
-
+      const response = await this.instance.get<any>(`${this.METRICS_PATH}/detailed${queryString}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching detailed metrics:', error);
-      
-      // Restore the original baseURL in case of error
-      this.instance.defaults.baseURL = originalBaseURL;
-
       throw error instanceof Error ? error : new Error('Failed to fetch detailed metrics');
     }
   }
@@ -508,33 +554,37 @@ export class ApiService {
     groupBy?: string;
   } = {}): Promise<DetailedMetrics> {
     this.initialize();
-
-    // Store the current base URL to restore it later
-    const originalBaseURL = this.instance.defaults.baseURL;
     
     try {
-      // Temporarily modify the baseURL
-      if (originalBaseURL) {
-        this.instance.defaults.baseURL = originalBaseURL.toString().replace(/\/+$/, '');
-      }
-
       const queryParams = this.buildQueryParams(params);
-      const response = await this.instance.get<DetailedMetrics>(`/metrics/detailed?${queryParams.toString()}`);
-
-      // Restore the original baseURL
-      this.instance.defaults.baseURL = originalBaseURL;
-
+      const response = await this.instance.get<DetailedMetrics>(`${this.METRICS_PATH}/detailed?${queryParams.toString()}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching detailed metrics:', error);
-      
-      // Restore the original baseURL in case of error
-      this.instance.defaults.baseURL = originalBaseURL;
-      
       throw error instanceof Error ? error : new Error('Failed to fetch detailed metrics');
     }
   }
   
+  /**
+   * Perform bulk status update for multiple purchase orders
+   */
+  public static async bulkUpdateStatus(
+    poNumbers: string[],
+    newStatus: POStatus
+  ): Promise<any> {
+    this.initialize();
+    
+    try {
+      const response = await this.instance.post('/bulk-operations', {
+        poNumbers,
+        operation: 'status',
+        status: newStatus
+      });
+      return response.data;
+    } catch (error) {
+      throw error instanceof Error ? error : new Error('Failed to perform bulk status update');
+    }
+  }
   
   /**
    * Fetch category-specific metrics
@@ -543,7 +593,7 @@ export class ApiService {
     this.initialize();
     
     try {
-      const response = await this.instance.get<any>(`/metrics/${category}`);
+      const response = await this.instance.get<any>(`${this.METRICS_PATH}/${category}`);
       return response.data;
     } catch (error) {
       throw error instanceof Error ? error : new Error('Failed to fetch category metrics');

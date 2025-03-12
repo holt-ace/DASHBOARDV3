@@ -1,8 +1,10 @@
+@use 'sass:color';
+
 // App-specific styles
 // These styles are specific to the App component and its direct children
 
 // Import variables for access in this file
-@import 'variables';
+@use 'variables' as *;
 
 // Main application container
 .app-container {
@@ -155,7 +157,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(to right, $primary, lighten($primary, 20%), $primary);
+  background: linear-gradient(to right, $primary, color.adjust($primary, $lightness: 20%), $primary);
   background-size: 200% 100%;
   animation: loading-gradient 2s infinite;
   z-index: $zindex-fixed + 10;
